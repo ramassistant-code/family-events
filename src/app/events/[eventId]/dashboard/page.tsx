@@ -58,7 +58,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ even
         <div className="card p-4">
           <p className="text-sm text-[var(--ink-soft)]">קיבולת האולם</p>
           <p className="text-3xl font-bold">
-            {stats.confirmedGuests} / {event.capacity}
+            {stats.confirmedGuests} מתוך {event.capacity}
           </p>
           <div className={`progress mt-3 ${stats.overflow ? "overflow" : ""}`}>
             <span style={{ width: `${percent}%` }} />
