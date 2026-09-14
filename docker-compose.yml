@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: family-events-db
+    environment:
+      POSTGRES_USER: family
+      POSTGRES_PASSWORD: family
+      POSTGRES_DB: family_events
+    ports:
+      - "5432:5432"
+    volumes:
+      - family_events_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U family -d family_events"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  family_events_pg:
