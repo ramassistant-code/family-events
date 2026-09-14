@@ -2,6 +2,9 @@
   "name": "family-events",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -30,7 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^16.4.7",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "^15.5.25",
     "tailwindcss": "^4",
