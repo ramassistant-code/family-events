@@ -1,1 +1,98 @@
 # family-events
+
+Hebrew RTL multi-event guest/RSVP app (Stage A MVP) for family events. The first seeded event is **חתונת מיטל ויונתן**.
+
+Each invitation is a household, not a person. The UI is Hebrew and right-to-left. Commits and this README are in English.
+
+## Stack
+
+- Next.js App Router on Vercel
+- PostgreSQL via `DATABASE_URL` (Supabase EU in production)
+- Auth.js (NextAuth v5) Credentials — users and sessions live in **our** tables, not Supabase Auth
+- Optional Docker Compose Postgres for a local demo
+
+## Default seed logins
+
+After `npm run db:seed` (skipped if users already exist):
+
+| Role | Email | Password |
+| --- | --- | --- |
+| System admin | `admin@family-events.local` | `FamilyEvents!2026` |
+| Family member | `family@family-events.local` | `FamilyEvents!2026` |
+| Event manager | `manager@family-events.local` | `FamilyEvents!2026` |
+
+Override the password with `SEED_ADMIN_PASSWORD` before seeding. Change these credentials before loading real guest data.
+
+## Environment variables
+
+Copy `.env.example` to `.env.local`:
+
+```bash
+AUTH_SECRET=generate-a-long-random-string
+AUTH_URL=http://localhost:3000
+DATABASE_URL=postgres://family:family@localhost:5432/family_events
+```
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | Supabase pooler URI (`sslmode=require`) or local Postgres |
+| `AUTH_SECRET` | yes in production | `openssl rand -base64 32` |
+| `AUTH_URL` | recommended | Public origin, e.g. `https://your-app.vercel.app` |
+| `SEED_ADMIN_PASSWORD` | no | Defaults to `FamilyEvents!2026` |
+
+SQL migrations are in `db/migrations/`. Auth.js tables `auth_accounts`, `auth_sessions`, and `auth_verification_tokens` are created there. Credentials auth uses JWT sessions (Auth.js requirement) while user records stay in `users`.
+
+## Local run
+
+```bash
+docker compose up -d
+cp .env.example .env.local
+# set AUTH_SECRET in .env.local
+npm install
+npm run db:migrate
+npm run db:seed
+npm run dev
+```
+
+Open http://localhost:3000 and sign in with the admin seed user. A single assigned event skips the picker and opens the Hebrew dashboard.
+
+```bash
+npm run verify   # lint, typecheck, tests, production build
+```
+
+Sample import file: `examples/invitations-sample.csv`.
+
+## Deploy (Vercel + Supabase EU)
+
+1. Create a Supabase project in the **EU**. Use the connection pooler URI as `DATABASE_URL` (`sslmode=require`). Do not enable Supabase Auth for this app.
+2. Create a Vercel project from this repository.
+3. Set `DATABASE_URL`, `AUTH_SECRET`, and `AUTH_URL` (the Vercel URL).
+4. Run migrations and seed against production once:
+
+   ```bash
+   DATABASE_URL='postgres://...' npm run db:migrate
+   DATABASE_URL='postgres://...' npm run db:seed
+   ```
+
+5. Deploy. Sign in, open **חתונת מיטל ויונתן**, and confirm RTL dashboard + invitation flows.
+
+Production data is personal (names, phones). Complete DPAs with Vercel and Supabase before loading real guests. Database backups: 30 days on the provider; application logs: 14 days.
+
+## Product rules implemented
+
+- Roles: `system_admin`, `family_member`, `event_manager`
+- Soft delete only in the UI; restore is admin-only; family members can soft-delete only rows they created
+- Phone optional after a warning; duplicate phone in the same event warns and can continue
+- Import Excel/CSV is create-only with preview, max 2000 rows, no upsert
+- Export Excel excludes soft-deleted rows
+- Invitation statuses: טרם פנינו · ממתינים לתשובה · מתלבטים · אישרו · סירבו
+- Event statuses: טיוטה · פעיל · הסתיים · בוטל
+- Inviting side: כלה · חתן · משותף · אחר
+- Capacity counts adults+children 1:1; soft-deleted rows are excluded from capacity, dashboard, side split, export, and the active list
+- `last_contacted_at` updates only on **סימון: פנינו** or a status change to ממתינים לתשובה
+- From טרם פנינו, **סימון: פנינו** also sets ממתינים לתשובה
+- `follow_up_on` stays empty until a contact action, then today+7 Asia/Jerusalem if empty; manual edit is allowed; today/overdue lists ignore empty dates and confirmed/declined rows
+- `tel:` and WhatsApp links do not change status or dates
+- Event manager: view + export + activity summary
+- Family member: see/edit every invitation in assigned events
+- Desktop sidebar, mobile bottom nav, full Hebrew RTL UI
