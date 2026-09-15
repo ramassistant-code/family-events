@@ -1,0 +1,37 @@
+name: Claude implement approved issue
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  implement:
+    if: >-
+      (github.event_name == 'issues' && github.event.label.name == 'agent-ready') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude implement'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Implement with Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          label_trigger: "agent-ready"
+          track_progress: true
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Edit,Write,Read,Glob,Grep,Bash(npm:*),Bash(node:*),Bash(git status:*),Bash(git diff:*)"
+            --append-system-prompt "Read the complete GitHub issue and follow any AGENTS.md exactly. Implement all approved acceptance criteria autonomously. Make technical decisions without asking the owner. Add tests, run verification (npm run verify), commit the changes, and open a pull request linked to the issue. Do not merge. If product behavior is genuinely ambiguous, ask one concise question in the issue. Communicate commits/PR in English; Hebrew only in user-facing UI strings."
