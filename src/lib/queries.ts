@@ -435,6 +435,24 @@ export async function softDeleteInvitation(
   `;
 }
 
+export async function updateInvitationGroupNames(
+  eventId: string,
+  invitationIds: string[],
+  groupName: string | null,
+  actorId: string,
+): Promise<InvitationRow[]> {
+  if (invitationIds.length === 0) return [];
+  const sql = getSql();
+  return sql<InvitationRow[]>`
+    UPDATE invitations
+    SET group_name = ${groupName}, updated_by = ${actorId}, updated_at = now()
+    WHERE event_id = ${eventId}
+      AND deleted_at IS NULL
+      AND id = ANY(${invitationIds}::uuid[])
+    RETURNING ${sql.unsafe(invitationSelect())}
+  `;
+}
+
 export async function softDeleteInvitations(
   eventId: string,
   invitationIds: string[],

@@ -10,6 +10,12 @@ export type ListedInvitationFilterInput = {
   group?: string;
 };
 
+/** Empty/whitespace matches single-edit: stored as null. */
+export function normalizeInvitationGroupName(raw: string): string | null {
+  const value = raw.trim();
+  return value.length > 0 ? value : null;
+}
+
 /** Same list filters as `/events/[eventId]/invitations` and `listInvitations`. */
 export function parseListedInvitationFilters(input: ListedInvitationFilterInput): InvitationFilters {
   const query = (input.query ?? input.q ?? "").trim();

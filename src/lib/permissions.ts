@@ -33,7 +33,7 @@ export function canExportInvitations(role: AppRole | null): boolean {
   return canViewEvent(role);
 }
 
-export function canSoftDeleteInvitation(
+function canActOnCreatedInvitation(
   role: AppRole | null,
   actorId: string,
   createdBy: string | null,
@@ -41,6 +41,14 @@ export function canSoftDeleteInvitation(
   if (role === "system_admin") return true;
   if (role === "family_member") return createdBy === actorId;
   return false;
+}
+
+export function canSoftDeleteInvitation(
+  role: AppRole | null,
+  actorId: string,
+  createdBy: string | null,
+): boolean {
+  return canActOnCreatedInvitation(role, actorId, createdBy);
 }
 
 export function canBulkSoftDelete(role: AppRole | null): boolean {
@@ -53,6 +61,26 @@ export function invitationsEligibleForSoftDelete<T extends { created_by: string 
   invitations: T[],
 ): T[] {
   return invitations.filter((invitation) => canSoftDeleteInvitation(role, actorId, invitation.created_by));
+}
+
+export function canUpdateInvitationGroup(
+  role: AppRole | null,
+  actorId: string,
+  createdBy: string | null,
+): boolean {
+  return canActOnCreatedInvitation(role, actorId, createdBy);
+}
+
+export function canBulkUpdateInvitationGroup(role: AppRole | null): boolean {
+  return canEditInvitations(role);
+}
+
+export function invitationsEligibleForGroupUpdate<T extends { created_by: string | null }>(
+  role: AppRole | null,
+  actorId: string,
+  invitations: T[],
+): T[] {
+  return invitations.filter((invitation) => canUpdateInvitationGroup(role, actorId, invitation.created_by));
 }
 
 export function canRestoreInvitation(role: AppRole | null): boolean {
