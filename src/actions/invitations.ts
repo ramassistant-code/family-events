@@ -283,6 +283,7 @@ export async function previewImportAction(eventId: string, formData: FormData) {
     ok: true as const,
     rows: preview.rows,
     summary: importSummary(preview.rows),
+    fileWarnings: preview.fileWarnings,
   };
 }
 

@@ -27,6 +27,9 @@ export type ImportRow = {
   errors: string[];
 };
 
+export const MISSING_COUNT_COLUMNS_WARNING =
+  "לא זוהו עמודות מבוגרים/ילדים — נעשה שימוש בברירת מחדל 1/0";
+
 const HEADER_MAP: Record<string, keyof ImportRow | "skip"> = {
   שם: "householdName",
   "שם משפחה": "householdName",
@@ -40,9 +43,39 @@ const HEADER_MAP: Record<string, keyof ImportRow | "skip"> = {
   צד: "invitingSide",
   side: "invitingSide",
   מבוגרים: "adults",
+  מבוגר: "adults",
+  "מבוגר/ים": "adults",
+  "כמות מבוגרים": "adults",
+  "מספר מבוגרים": "adults",
+  "מס' מבוגרים": "adults",
+  "מס מבוגרים": "adults",
+  אורחים: "adults",
+  "כמות אורחים": "adults",
+  "מספר אורחים": "adults",
   adults: "adults",
+  adult: "adults",
+  "num adults": "adults",
+  "number of adults": "adults",
+  "no of adults": "adults",
+  "qty adults": "adults",
+  "quantity adults": "adults",
+  "adults count": "adults",
   ילדים: "children",
+  ילד: "children",
+  "ילד/ים": "children",
+  "כמות ילדים": "children",
+  "מספר ילדים": "children",
+  "מס' ילדים": "children",
+  "מס ילדים": "children",
   children: "children",
+  child: "children",
+  kids: "children",
+  kid: "children",
+  "num children": "children",
+  "number of children": "children",
+  "no of children": "children",
+  "qty children": "children",
+  "children count": "children",
   סטטוס: "status",
   status: "status",
   "רגישויות מזון": "foodNotes",
@@ -65,16 +98,29 @@ const HEADER_MAP: Record<string, keyof ImportRow | "skip"> = {
   followup: "followUpOn",
 };
 
-function cleanHeader(value: string): string {
-  return value.replace(/^\uFEFF/, "").trim().toLowerCase();
+/** Trim, collapse spaces, strip bidi/punctuation so «מס' מבוגרים» and «מבוגר/ים» match. */
+export function normalizeHeader(value: string): string {
+  return value
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "")
+    .replace(/[\u00A0\u202F\u2007\u2009]/g, " ")
+    .replace(/\//g, "")
+    .replace(/[-–—_]/g, " ")
+    .replace(/[.'"׳״`’‘“”:;#*?()[\]{}]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+const NORMALIZED_HEADER_MAP: Record<string, keyof ImportRow | "skip"> = {};
+for (const [alias, field] of Object.entries(HEADER_MAP)) {
+  NORMALIZED_HEADER_MAP[normalizeHeader(alias)] = field;
 }
 
 function lookupHeader(raw: string): keyof ImportRow | "skip" | null {
-  const exact = HEADER_MAP[raw.trim()] ?? HEADER_MAP[cleanHeader(raw)];
-  if (exact) return exact;
-  const lower = cleanHeader(raw);
-  const match = Object.entries(HEADER_MAP).find(([key]) => key.toLowerCase() === lower);
-  return match?.[1] ?? null;
+  const normalized = normalizeHeader(raw);
+  if (!normalized) return null;
+  return NORMALIZED_HEADER_MAP[normalized] ?? null;
 }
 
 function emptyToNull(value: string | null | undefined): string | null {
@@ -83,9 +129,15 @@ function emptyToNull(value: string | null | undefined): string | null {
 }
 
 function parseCount(value: string | null | undefined, fallback: number): { value: number; error?: string } {
-  if (!value || !value.trim()) return { value: fallback };
-  const n = Number(String(value).replace(",", ".").trim());
-  if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
+  if (value == null) return { value: fallback };
+  const raw = String(value).trim();
+  if (!raw) return { value: fallback };
+  const n = Number(raw.replace(",", "."));
+  if (!Number.isFinite(n) || n < 0) {
+    return { value: fallback, error: "מספר לא תקין" };
+  }
+  // Accept Excel integer-valued floats (2.0) but reject 2.5.
+  if (n !== Math.trunc(n)) {
     return { value: fallback, error: "מספר לא תקין" };
   }
   return { value: n };
@@ -145,19 +197,22 @@ export function parseCsv(text: string): string[][] {
 export function previewImport(
   table: string[][],
   existingNormalizedPhones: string[],
-): { rows: ImportRow[]; error?: string } {
+): { rows: ImportRow[]; error?: string; fileWarnings: string[] } {
   if (table.length === 0) {
-    return { rows: [], error: "הקובץ ריק" };
+    return { rows: [], error: "הקובץ ריק", fileWarnings: [] };
   }
   const header = table[0];
   const mapped = header.map((cell) => lookupHeader(cell));
   if (!mapped.some((col) => col === "householdName")) {
-    return { rows: [], error: "חסרה עמודת שם / משפחה" };
+    return { rows: [], error: "חסרה עמודת שם / משפחה", fileWarnings: [] };
   }
   const data = table.slice(1);
   if (data.length > MAX_IMPORT_ROWS) {
-    return { rows: [], error: `לא ניתן לייבא יותר מ־${MAX_IMPORT_ROWS} שורות` };
+    return { rows: [], error: `לא ניתן לייבא יותר מ־${MAX_IMPORT_ROWS} שורות`, fileWarnings: [] };
   }
+
+  const missingCountColumns = !mapped.includes("adults") && !mapped.includes("children");
+  const fileWarnings = missingCountColumns ? [MISSING_COUNT_COLUMNS_WARNING] : [];
 
   const existing = new Set(existingNormalizedPhones);
   const seenInFile = new Map<string, number>();
@@ -172,6 +227,7 @@ export function previewImport(
 
     const warnings: string[] = [];
     const errors: string[] = [];
+    if (missingCountColumns) warnings.push(MISSING_COUNT_COLUMNS_WARNING);
     const householdName = get("householdName") ?? "";
     if (!householdName) errors.push("חסר שם הזמנה");
 
@@ -226,7 +282,7 @@ export function previewImport(
     });
   });
 
-  return { rows };
+  return { rows, fileWarnings };
 }
 
 export function importSummary(rows: ImportRow[]) {
