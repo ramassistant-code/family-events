@@ -114,7 +114,17 @@ export function InvitationForm({
         </label>
         <label className="field">
           <span>קבוצה</span>
-          <input className="input" name="groupName" defaultValue={invitation?.group_name ?? ""} disabled={readOnly} />
+          <input
+            className="input"
+            name="groupName"
+            defaultValue={invitation?.group_name ?? ""}
+            disabled={readOnly}
+            placeholder="למשל: אבא כלה – שכנים"
+            autoComplete="off"
+          />
+          <p className="text-sm text-[var(--ink-soft)]">
+            ערך חופשי לקיבוץ אורחים, למשל «אבא כלה – שכנים» או «אמא חתן – עבודה».
+          </p>
         </label>
       </section>
 

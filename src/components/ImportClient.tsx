@@ -65,6 +65,7 @@ export function ImportClient({ eventId }: { eventId: string }) {
                   <th>שם</th>
                   <th>טלפון</th>
                   <th>צד</th>
+                  <th>קבוצה</th>
                   <th>הערות</th>
                 </tr>
               </thead>
@@ -75,6 +76,7 @@ export function ImportClient({ eventId }: { eventId: string }) {
                     <td>{row.householdName}</td>
                     <td>{row.phone}</td>
                     <td>{INVITING_SIDE_LABELS[row.invitingSide]}</td>
+                    <td>{row.groupName || "—"}</td>
                     <td>
                       {row.errors.join(" · ")}
                       {row.warnings.join(" · ")}

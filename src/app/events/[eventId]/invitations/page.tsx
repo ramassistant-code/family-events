@@ -10,7 +10,7 @@ import {
   type InvitingSide,
 } from "@/lib/domain";
 import { canEditInvitations, canExportInvitations, canImportInvitations } from "@/lib/permissions";
-import { listInvitations } from "@/lib/queries";
+import { listInvitationGroupNames, listInvitations } from "@/lib/queries";
 import { telHref, whatsappHref } from "@/lib/phone";
 import Link from "next/link";
 
@@ -29,10 +29,14 @@ export default async function InvitationsPage({
   const status = String(query.status ?? "") as InvitationStatus | "";
   const side = String(query.side ?? "") as InvitingSide | "";
   const followUp = String(query.followUp ?? "") as "today" | "overdue" | "";
+  const group = String(query.group ?? "");
   const q = String(query.q ?? "");
   const sort = String(query.sort ?? "name") as "name" | "status" | "follow_up" | "last_contacted" | "created";
 
-  const rows = await listInvitations(eventId, { query: q, status, side, followUp, sort });
+  const [rows, groupNames] = await Promise.all([
+    listInvitations(eventId, { query: q, status, side, followUp, group, sort }),
+    listInvitationGroupNames(eventId),
+  ]);
   const canEdit = canEditInvitations(role);
   const canImport = canImportInvitations(role);
   const canExport = canExportInvitations(role);
@@ -41,6 +45,7 @@ export default async function InvitationsPage({
     status,
     side,
     followUp,
+    group,
   }).toString()}`;
 
   return (
@@ -66,8 +71,13 @@ export default async function InvitationsPage({
         </div>
       </div>
 
-      <form className="card grid gap-3 p-4 md:grid-cols-5">
-        <input className="input md:col-span-2" name="q" placeholder="חיפוש לפי שם או טלפון" defaultValue={q} />
+      <form className="card grid gap-3 p-4 md:grid-cols-3">
+        <input
+          className="input md:col-span-3"
+          name="q"
+          placeholder="חיפוש לפי שם, טלפון או קבוצה"
+          defaultValue={q}
+        />
         <select className="select" name="status" defaultValue={status}>
           <option value="">כל הסטטוסים</option>
           {Object.entries(INVITATION_STATUS_LABELS).map(([value, label]) => (
@@ -89,6 +99,15 @@ export default async function InvitationsPage({
           <option value="today">להיום</option>
           <option value="overdue">באיחור</option>
         </select>
+        <select className="select" name="group" defaultValue={group}>
+          <option value="">כל הקבוצות</option>
+          {group && !groupNames.includes(group) ? <option value={group}>{group}</option> : null}
+          {groupNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
         <select className="select" name="sort" defaultValue={sort}>
           <option value="name">מיון לפי שם</option>
           <option value="status">מיון לפי סטטוס</option>
@@ -96,7 +115,7 @@ export default async function InvitationsPage({
           <option value="last_contacted">מיון לפי יצירת קשר</option>
           <option value="created">מיון לפי יצירה</option>
         </select>
-        <button className="btn btn-secondary md:col-span-5 w-fit" type="submit">
+        <button className="btn btn-secondary md:col-span-3 w-fit" type="submit">
           סינון
         </button>
       </form>
@@ -132,6 +151,7 @@ export default async function InvitationsPage({
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     <SideChip side={row.inviting_side} />
+                    {row.group_name ? <span className="chip chip-not_contacted">{row.group_name}</span> : null}
                     <span className="chip chip-not_contacted">מעקב {formatDateJerusalem(row.follow_up_on)}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -160,6 +180,7 @@ export default async function InvitationsPage({
                   <th>טלפון</th>
                   <th>סטטוס</th>
                   <th>צד</th>
+                  <th>קבוצה</th>
                   <th>מוזמנים</th>
                   <th>מעקב</th>
                   <th>יצירת קשר אחרון</th>
@@ -184,6 +205,7 @@ export default async function InvitationsPage({
                       <td>
                         <SideChip side={row.inviting_side} />
                       </td>
+                      <td>{row.group_name || "—"}</td>
                       <td>
                         {row.adults}+{row.children}
                       </td>
