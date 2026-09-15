@@ -7,7 +7,7 @@ import {
   type InvitationStatus,
   type InvitingSide,
 } from "@/lib/domain";
-import { telHref, whatsappHref } from "@/lib/phone";
+import { whatsappHref } from "@/lib/phone";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -48,7 +48,6 @@ export function InvitationForm({
   const [ackDup, setAckDup] = useState(false);
 
   const phone = invitation?.phone ?? "";
-  const tel = telHref(invitation?.phone);
   const wa = whatsappHref(invitation?.phone);
 
   async function submit(form: HTMLFormElement) {
@@ -188,11 +187,6 @@ export function InvitationForm({
           >
             סימון: פנינו
           </button>
-        ) : null}
-        {tel ? (
-          <a className="btn btn-secondary" href={tel}>
-            התקשר
-          </a>
         ) : null}
         {wa ? (
           <a className="btn btn-secondary" href={wa} target="_blank" rel="noreferrer">

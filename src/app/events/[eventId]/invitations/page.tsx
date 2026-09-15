@@ -14,7 +14,7 @@ import {
   invitationsEligibleForSoftDelete,
 } from "@/lib/permissions";
 import { listInvitationGroupNames, listInvitations } from "@/lib/queries";
-import { telHref, whatsappHref } from "@/lib/phone";
+import { whatsappHref } from "@/lib/phone";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -162,7 +162,6 @@ export default async function InvitationsPage({
         <>
           <div className="grid gap-3 lg:hidden">
             {rows.map((row) => {
-              const tel = telHref(row.phone, row.phone_normalized);
               const wa = whatsappHref(row.phone, row.phone_normalized);
               return (
                 <article key={row.id} className="card p-4">
@@ -181,11 +180,6 @@ export default async function InvitationsPage({
                     <span className="chip chip-not_contacted">מעקב {formatDateJerusalem(row.follow_up_on)}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {tel ? (
-                      <a className="btn btn-secondary" href={tel}>
-                        חיוג
-                      </a>
-                    ) : null}
                     {wa ? (
                       <a className="btn btn-secondary" href={wa} target="_blank" rel="noreferrer">
                         WhatsApp
@@ -215,7 +209,6 @@ export default async function InvitationsPage({
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const tel = telHref(row.phone, row.phone_normalized);
                   const wa = whatsappHref(row.phone, row.phone_normalized);
                   return (
                     <tr key={row.id}>
@@ -239,11 +232,6 @@ export default async function InvitationsPage({
                       <td>{formatDateTimeJerusalem(row.last_contacted_at)}</td>
                       <td>
                         <div className="flex flex-wrap gap-1">
-                          {tel ? (
-                            <a className="btn btn-secondary" href={tel}>
-                              חיוג
-                            </a>
-                          ) : null}
                           {wa ? (
                             <a className="btn btn-secondary" href={wa} target="_blank" rel="noreferrer">
                               WhatsApp
