@@ -1,12 +1,12 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { authConfig } from "@/auth.config";
+import { authConfig, resolveAuthSecret } from "@/auth.config";
 import { getUserByEmail } from "@/lib/queries";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  secret: process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-me",
+  secret: process.env.AUTH_SECRET ?? resolveAuthSecret(),
   providers: [
     Credentials({
       name: "credentials",
