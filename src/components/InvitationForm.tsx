@@ -1,6 +1,6 @@
 "use client";
 
-import { markContactedAction, saveInvitationAction, softDeleteInvitationAction } from "@/actions/invitations";
+import { saveInvitationAction, softDeleteInvitationAction } from "@/actions/invitations";
 import {
   INVITATION_STATUS_LABELS,
   INVITING_SIDE_LABELS,
@@ -174,18 +174,6 @@ export function InvitationForm({
         {!readOnly ? (
           <button className="btn btn-primary" disabled={pending} type="submit">
             {pending ? "שומר…" : "שמירה"}
-          </button>
-        ) : null}
-        {invitation?.id && !readOnly ? (
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={async () => {
-              await markContactedAction(eventId, invitation.id!);
-              router.refresh();
-            }}
-          >
-            סימון: פנינו
           </button>
         ) : null}
         {wa ? (

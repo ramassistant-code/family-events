@@ -1,8 +1,7 @@
 import { BulkSoftDeleteControl } from "@/components/BulkSoftDeleteControl";
 import { BulkUpdateGroupControl } from "@/components/BulkUpdateGroupControl";
-import { EmptyState } from "@/components/Chips";
-import { InvitationStatusChip, SideChip } from "@/components/Chips";
-import { MarkContactedButton } from "@/components/MarkContactedButton";
+import { EmptyState, SideChip } from "@/components/Chips";
+import { InvitationStatusSelect } from "@/components/InvitationStatusSelect";
 import { requireEventAccess } from "@/lib/access";
 import { formatDateJerusalem, formatDateTimeJerusalem } from "@/lib/dates";
 import { INVITATION_STATUS_LABELS, INVITING_SIDE_LABELS } from "@/lib/domain";
@@ -209,7 +208,12 @@ export default async function InvitationsPage({
                     <Link href={`/events/${eventId}/invitations/${row.id}`} className="font-display text-xl">
                       {row.household_name}
                     </Link>
-                    <InvitationStatusChip status={row.status} />
+                    <InvitationStatusSelect
+                      eventId={eventId}
+                      invitationId={row.id}
+                      status={row.status}
+                      canEdit={canEdit}
+                    />
                   </div>
                   <p className="mt-1 text-sm text-[var(--ink-soft)]">
                     {row.phone || "ללא טלפון"} · {row.adults} מבוגרים
@@ -221,14 +225,13 @@ export default async function InvitationsPage({
                     <span className="chip chip-not_contacted">מעקב {formatDateJerusalem(row.follow_up_on)}</span>
                   </div>
                   {note ? <p className="quote-note">„{note}”</p> : null}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {wa ? (
+                  {wa ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <a className="btn btn-secondary" href={wa} target="_blank" rel="noreferrer">
                         WhatsApp
                       </a>
-                    ) : null}
-                    {canEdit ? <MarkContactedButton eventId={eventId} invitationId={row.id} /> : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </article>
               );
             })}
@@ -261,7 +264,12 @@ export default async function InvitationsPage({
                       </td>
                       <td>{row.phone || "—"}</td>
                       <td>
-                        <InvitationStatusChip status={row.status} />
+                        <InvitationStatusSelect
+                          eventId={eventId}
+                          invitationId={row.id}
+                          status={row.status}
+                          canEdit={canEdit}
+                        />
                       </td>
                       <td>
                         <SideChip side={row.inviting_side} />
@@ -279,7 +287,6 @@ export default async function InvitationsPage({
                               WhatsApp
                             </a>
                           ) : null}
-                          {canEdit ? <MarkContactedButton eventId={eventId} invitationId={row.id} /> : null}
                         </div>
                       </td>
                     </tr>

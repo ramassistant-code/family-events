@@ -238,6 +238,12 @@ textarea {
   opacity: 0.6;
 }
 
+.select.status-select {
+  width: auto;
+  min-width: 11.5rem;
+  max-width: 100%;
+}
+
 .textarea {
   min-height: 96px;
   resize: vertical;

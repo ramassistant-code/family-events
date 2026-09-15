@@ -221,6 +221,66 @@ export async function markContactedAction(eventId: string, invitationId: string)
   return { ok: true as const };
 }
 
+export async function updateInvitationStatusAction(
+  eventId: string,
+  invitationId: string,
+  nextStatusRaw: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { user, role } = await requireEventAccess(eventId);
+  if (!canEditInvitations(role)) {
+    return { ok: false, error: "אין הרשאה לערוך הזמנות." };
+  }
+  if (!isInvitationStatus(nextStatusRaw)) {
+    return { ok: false, error: "סטטוס לא תקין." };
+  }
+
+  const invitation = await getInvitation(eventId, invitationId);
+  if (!invitation || invitation.deleted_at) {
+    return { ok: false, error: "ההזמנה לא נמצאה." };
+  }
+  if (invitation.status === nextStatusRaw) {
+    return { ok: true };
+  }
+
+  const statusChange = applyStatusChange({
+    previousStatus: invitation.status,
+    nextStatus: nextStatusRaw,
+    followUpOn: invitation.follow_up_on,
+    today: todayInJerusalem(),
+  });
+
+  const updated = await updateInvitation({
+    id: invitation.id,
+    eventId,
+    householdName: invitation.household_name,
+    phone: invitation.phone,
+    phoneNormalized: invitation.phone_normalized,
+    invitingSide: invitation.inviting_side,
+    adults: invitation.adults,
+    children: invitation.children,
+    status: nextStatusRaw,
+    followUpOn: statusChange.followUpOn,
+    foodNotes: invitation.food_notes,
+    accessibilityNotes: invitation.accessibility_notes,
+    transportNotes: invitation.transport_notes,
+    notes: invitation.notes,
+    groupName: invitation.group_name,
+    lastContactedAt: statusChange.touchLastContacted ? new Date() : undefined,
+    updatedBy: user.id,
+  });
+
+  await insertActivity({
+    eventId,
+    invitationId,
+    actorId: user.id,
+    action: "invitation.status_changed",
+    summary: `סטטוס «${invitation.household_name}» עודכן`,
+    details: { from: invitation.status, to: updated.status },
+  });
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true };
+}
+
 export async function softDeleteInvitationAction(eventId: string, invitationId: string) {
   const { user, role } = await requireEventAccess(eventId);
   const invitation = await getInvitation(eventId, invitationId);
