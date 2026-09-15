@@ -1,4 +1,5 @@
 import { EventStatusChip, EventTypeLabel } from "@/components/Chips";
+import { EventCoverImage } from "@/components/EventCoverImage";
 import { requireAdmin } from "@/lib/access";
 import { formatDateTimeJerusalem } from "@/lib/dates";
 import { listEvents } from "@/lib/queries";
@@ -19,12 +20,17 @@ export default async function AdminEventsPage() {
       </div>
       <div className="grid gap-3">
         {events.map((event) => (
-          <Link key={event.id} href={`/admin/events/${event.id}`} className="card flex items-center justify-between p-4">
-            <div>
-              <h3 className="text-lg font-bold">{event.name}</h3>
-              <p className="text-sm text-[var(--ink-soft)]">
-                <EventTypeLabel type={event.event_type} /> · קיבולת {event.capacity} · {formatDateTimeJerusalem(event.starts_at)}
-              </p>
+          <Link key={event.id} href={`/admin/events/${event.id}`} className="card flex items-center justify-between gap-3 p-4">
+            <div className="flex min-w-0 items-center gap-3">
+              {event.cover_image_url ? (
+                <EventCoverImage src={event.cover_image_url} alt={`תמונת כיסוי של ${event.name}`} variant="thumb" />
+              ) : null}
+              <div>
+                <h3 className="text-lg font-bold">{event.name}</h3>
+                <p className="text-sm text-[var(--ink-soft)]">
+                  <EventTypeLabel type={event.event_type} /> · קיבולת {event.capacity} · {formatDateTimeJerusalem(event.starts_at)}
+                </p>
+              </div>
             </div>
             <EventStatusChip status={event.status} />
           </Link>

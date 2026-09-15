@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/AppShell";
 import { EventStatusChip, EventTypeLabel, RoleChip } from "@/components/Chips";
+import { EventCoverImage } from "@/components/EventCoverImage";
 import { requireSession } from "@/lib/access";
 import { accessibleEvents } from "@/lib/queries";
 import { formatDateTimeJerusalem } from "@/lib/dates";
@@ -31,16 +32,25 @@ export default async function EventsPickerPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {events.map((event) => (
-            <Link key={event.id} href={`/events/${event.id}/dashboard`} className="card block p-5 hover:border-[var(--gold)]">
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="text-xl font-bold">{event.name}</h2>
-                <EventStatusChip status={event.status} />
-              </div>
-              <p className="mt-2 text-[var(--ink-soft)]">
-                <EventTypeLabel type={event.event_type} /> · {formatDateTimeJerusalem(event.starts_at)}
-              </p>
-              <div className="mt-3">
-                <RoleChip role={event.role} />
+            <Link
+              key={event.id}
+              href={`/events/${event.id}/dashboard`}
+              className="card block overflow-hidden hover:border-[var(--gold)]"
+            >
+              {event.cover_image_url ? (
+                <EventCoverImage src={event.cover_image_url} alt={`תמונת כיסוי של ${event.name}`} variant="banner" />
+              ) : null}
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-xl font-bold">{event.name}</h2>
+                  <EventStatusChip status={event.status} />
+                </div>
+                <p className="mt-2 text-[var(--ink-soft)]">
+                  <EventTypeLabel type={event.event_type} /> · {formatDateTimeJerusalem(event.starts_at)}
+                </p>
+                <div className="mt-3">
+                  <RoleChip role={event.role} />
+                </div>
               </div>
             </Link>
           ))}

@@ -20,6 +20,7 @@ export default async function EventLayout({
     <AppShell
       title={event.name}
       subtitle={event.starts_at ? formatDateJerusalem(event.starts_at) : undefined}
+      coverImageUrl={event.cover_image_url}
       role={role}
       userName={user.name}
       items={[

@@ -1,3 +1,4 @@
+import { EventCoverImage } from "@/components/EventCoverImage";
 import { ROLE_LABELS, type AppRole } from "@/lib/domain";
 import { logoutAction } from "@/actions/auth";
 import Link from "next/link";
@@ -11,6 +12,7 @@ export function AppShell({
   userName,
   items,
   moreItems = [],
+  coverImageUrl,
   children,
 }: {
   title: string;
@@ -19,6 +21,7 @@ export function AppShell({
   userName: string;
   items: NavItem[];
   moreItems?: NavItem[];
+  coverImageUrl?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -26,8 +29,13 @@ export function AppShell({
       <aside className="card hidden lg:flex lg:w-64 lg:flex-col lg:rounded-none lg:border-0 lg:border-inline-end">
         <div className="p-5">
           <p className="text-sm text-[var(--muted)]">אירועים משפחתיים</p>
-          <h1 className="mt-1 text-xl font-bold leading-tight">{title}</h1>
-          {subtitle ? <p className="mt-1 text-sm text-[var(--ink-soft)]">{subtitle}</p> : null}
+          <div className="mt-2 flex items-start gap-3">
+            {coverImageUrl ? <EventCoverImage src={coverImageUrl} alt={title} variant="thumb" /> : null}
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold leading-tight">{title}</h1>
+              {subtitle ? <p className="mt-1 text-sm text-[var(--ink-soft)]">{subtitle}</p> : null}
+            </div>
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           {items.map((item) => (
@@ -55,7 +63,10 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
         <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--paper)]/90 px-4 py-3 backdrop-blur lg:hidden">
           <p className="text-sm text-[var(--muted)]">אירועים משפחתיים</p>
-          <h1 className="text-lg font-bold">{title}</h1>
+          <div className="mt-1 flex items-center gap-2">
+            {coverImageUrl ? <EventCoverImage src={coverImageUrl} alt={title} variant="thumb" /> : null}
+            <h1 className="text-lg font-bold">{title}</h1>
+          </div>
         </header>
         <main className="page-wrap py-5 lg:max-w-none lg:px-8 lg:py-8">{children}</main>
       </div>

@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/access";
-import { insertActivity, insertEvent, updateEvent } from "@/lib/queries";
+import { COVER_ERRORS, isEventId } from "@/lib/event-cover";
+import { deleteCoverObjectByUrl, uploadEventCoverObject } from "@/lib/event-cover-storage";
+import { getEvent, insertActivity, insertEvent, updateEvent, updateEventCoverImage } from "@/lib/queries";
 import { EVENT_STATUSES, EVENT_TYPES, type EventStatus, type EventType } from "@/lib/domain";
 
 function isEventType(value: string): value is EventType {
@@ -10,6 +12,14 @@ function isEventType(value: string): value is EventType {
 }
 function isEventStatus(value: string): value is EventStatus {
   return (EVENT_STATUSES as readonly string[]).includes(value);
+}
+
+function revalidateEventPaths(eventId: string) {
+  revalidatePath("/admin/events");
+  revalidatePath("/events");
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath(`/events/${eventId}/dashboard`);
 }
 
 export async function saveEventAction(eventId: string | null, formData: FormData) {
@@ -42,8 +52,7 @@ export async function saveEventAction(eventId: string | null, formData: FormData
       action: "event.created",
       summary: `נוצר אירוע «${created.name}»`,
     });
-    revalidatePath("/admin/events");
-    revalidatePath("/events");
+    revalidateEventPaths(created.id);
     return { ok: true as const, id: created.id };
   }
 
@@ -54,7 +63,74 @@ export async function saveEventAction(eventId: string | null, formData: FormData
     action: "event.updated",
     summary: `עודכן אירוע «${updated.name}»`,
   });
-  revalidatePath("/admin/events");
-  revalidatePath(`/events/${updated.id}`);
+  revalidateEventPaths(updated.id);
   return { ok: true as const, id: updated.id };
+}
+
+export async function uploadEventCoverAction(eventId: string, formData: FormData) {
+  const user = await requireAdmin();
+  if (!isEventId(eventId)) {
+    return { ok: false as const, error: COVER_ERRORS.eventNotFound };
+  }
+  const event = await getEvent(eventId);
+  if (!event) {
+    return { ok: false as const, error: COVER_ERRORS.eventNotFound };
+  }
+
+  const file = formData.get("coverImage");
+  if (!file || typeof file === "string") {
+    return { ok: false as const, error: COVER_ERRORS.missingFile };
+  }
+
+  const uploaded = await uploadEventCoverObject(eventId, file);
+  if (!uploaded.ok) return uploaded;
+
+  const previousUrl = event.cover_image_url;
+  const updated = await updateEventCoverImage(eventId, uploaded.url, user.id);
+  if (!updated) {
+    await deleteCoverObjectByUrl(uploaded.url);
+    return { ok: false as const, error: COVER_ERRORS.eventNotFound };
+  }
+
+  if (previousUrl && previousUrl !== uploaded.url) {
+    await deleteCoverObjectByUrl(previousUrl);
+  }
+
+  await insertActivity({
+    eventId,
+    actorId: user.id,
+    action: "event.cover_uploaded",
+    summary: `הועלתה תמונת כיסוי לאירוע «${updated.name}»`,
+  });
+  revalidateEventPaths(eventId);
+  return { ok: true as const, url: uploaded.url };
+}
+
+export async function removeEventCoverAction(eventId: string) {
+  const user = await requireAdmin();
+  if (!isEventId(eventId)) {
+    return { ok: false as const, error: COVER_ERRORS.eventNotFound };
+  }
+  const event = await getEvent(eventId);
+  if (!event) {
+    return { ok: false as const, error: COVER_ERRORS.eventNotFound };
+  }
+
+  if (event.cover_image_url) {
+    await deleteCoverObjectByUrl(event.cover_image_url);
+  }
+
+  const updated = await updateEventCoverImage(eventId, null, user.id);
+  if (!updated) {
+    return { ok: false as const, error: COVER_ERRORS.eventNotFound };
+  }
+
+  await insertActivity({
+    eventId,
+    actorId: user.id,
+    action: "event.cover_removed",
+    summary: `הוסרה תמונת כיסוי מאירוע «${updated.name}»`,
+  });
+  revalidateEventPaths(eventId);
+  return { ok: true as const };
 }
