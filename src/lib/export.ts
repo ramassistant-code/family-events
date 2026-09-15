@@ -40,7 +40,7 @@ export async function invitationsToExcelBuffer(rows: ExportInvitation[]): Promis
     { header: "נגישות", key: "accessibility", width: 18 },
     { header: "הסעה", key: "transport", width: 18 },
     { header: "הערות", key: "notes", width: 24 },
-    { header: "קבוצה", key: "group", width: 14 },
+    { header: "קבוצה", key: "group", width: 22 },
   ];
   sheet.getRow(1).font = { bold: true };
 

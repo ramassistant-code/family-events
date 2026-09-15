@@ -22,6 +22,17 @@ describe("import preview", () => {
     expect(summary.errors).toBe(1);
   });
 
+  it("maps the קבוצה column onto groupName", () => {
+    const csv = `שם,טלפון,קבוצה
+משפחת א,0501234567,אבא כלה – שכנים
+משפחת ב,0501111111,`;
+    const table = parseCsv(csv);
+    const preview = previewImport(table, []);
+    expect(preview.error).toBeUndefined();
+    expect(preview.rows[0].groupName).toBe("אבא כלה – שכנים");
+    expect(preview.rows[1].groupName).toBeNull();
+  });
+
   it("rejects files above 2000 data rows", () => {
     const header = ["שם"];
     const data = Array.from({ length: 2001 }, () => ["משפחה"]);

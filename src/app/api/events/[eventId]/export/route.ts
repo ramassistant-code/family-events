@@ -21,6 +21,7 @@ export async function GET(
   const status = url.searchParams.get("status") || "";
   const side = url.searchParams.get("side") || "";
   const followUp = url.searchParams.get("followUp") || "";
+  const group = url.searchParams.get("group") || "";
   const query = url.searchParams.get("q") || "";
 
   const rows = await listInvitations(eventId, {
@@ -28,6 +29,7 @@ export async function GET(
     status: status as InvitationStatus | "",
     side: side as InvitingSide | "",
     followUp: followUp as "today" | "overdue" | "",
+    group,
   });
 
   const buffer = await invitationsToExcelBuffer(rows);

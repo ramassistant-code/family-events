@@ -211,6 +211,20 @@ export type InvitationFilters = {
   sort?: "name" | "status" | "follow_up" | "last_contacted" | "created";
 };
 
+export async function listInvitationGroupNames(eventId: string): Promise<string[]> {
+  const sql = getSql();
+  const rows = await sql<{ group_name: string }[]>`
+    SELECT DISTINCT group_name
+    FROM invitations
+    WHERE event_id = ${eventId}
+      AND deleted_at IS NULL
+      AND group_name IS NOT NULL
+      AND btrim(group_name) <> ''
+    ORDER BY group_name
+  `;
+  return rows.map((row) => row.group_name);
+}
+
 export async function listInvitations(
   eventId: string,
   filters: InvitationFilters = {},
