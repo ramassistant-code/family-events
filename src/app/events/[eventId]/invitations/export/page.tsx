@@ -26,7 +26,7 @@ export default async function ExportPage({
 
   return (
     <div className="card grid max-w-lg gap-3 p-6">
-      <h2 className="text-2xl font-bold">ייצוא Excel</h2>
+      <h2 className="page-title">ייצוא Excel</h2>
       <p className="text-[var(--ink-soft)]">
         הקובץ כולל רגישויות מזון, נגישות והסעה. רשומות שנמחקו לא ייכללו.
       </p>

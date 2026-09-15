@@ -84,7 +84,7 @@ export function InvitationForm({
       }}
     >
       <section className="card grid gap-4 p-4 md:grid-cols-2">
-        <h2 className="md:col-span-2 text-lg font-bold">פרטים</h2>
+        <h2 className="font-display text-lg md:col-span-2">פרטים</h2>
         <label className="field md:col-span-2">
           <span>שם הזמנה / משפחה</span>
           <input className="input" name="householdName" defaultValue={invitation?.household_name ?? ""} required disabled={readOnly} />
@@ -128,7 +128,7 @@ export function InvitationForm({
       </section>
 
       <section className="card grid gap-4 p-4 md:grid-cols-2">
-        <h2 className="md:col-span-2 text-lg font-bold">סטטוס ומעקב</h2>
+        <h2 className="font-display text-lg md:col-span-2">סטטוס ומעקב</h2>
         <label className="field">
           <span>סטטוס</span>
           <select className="select" name="status" defaultValue={invitation?.status ?? "not_contacted"} disabled={readOnly}>
@@ -149,7 +149,7 @@ export function InvitationForm({
       </section>
 
       <section className="card grid gap-4 p-4">
-        <h2 className="text-lg font-bold">העדפות</h2>
+        <h2 className="font-display text-lg">העדפות</h2>
         <label className="field">
           <span>רגישויות מזון</span>
           <textarea className="textarea" name="foodNotes" defaultValue={invitation?.food_notes ?? ""} disabled={readOnly} />
@@ -170,7 +170,7 @@ export function InvitationForm({
 
       {error ? <p className="text-[var(--no)]">{error}</p> : null}
 
-      <div className="sticky bottom-20 z-10 flex flex-wrap gap-2 bg-[var(--paper)]/95 py-3 lg:bottom-0">
+      <div className="sticky-actions sticky bottom-20 z-10 flex flex-wrap gap-2 py-3 lg:bottom-0">
         {!readOnly ? (
           <button className="btn btn-primary" disabled={pending} type="submit">
             {pending ? "שומר…" : "שמירה"}
@@ -204,7 +204,7 @@ export function InvitationForm({
       </div>
 
       {dialog ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+        <div className="modal-backdrop fixed inset-0 z-50 grid place-items-center p-4">
           <div className="card max-w-md p-5">
             {dialog === "phone" ? (
               <>

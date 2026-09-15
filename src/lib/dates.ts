@@ -60,3 +60,26 @@ export function toDateInputValue(value: Date | string | null | undefined): strin
   }
   return todayInJerusalem(value);
 }
+
+export type RemainingTime = {
+  totalMs: number;
+  days: number;
+  hours: number;
+  minutes: number;
+  past: boolean;
+};
+
+export function remainingUntil(value: Date | string | null | undefined, now = new Date()): RemainingTime | null {
+  if (!value) return null;
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return null;
+  const totalMs = date.getTime() - now.getTime();
+  const abs = Math.abs(totalMs);
+  return {
+    totalMs,
+    days: Math.floor(abs / 86_400_000),
+    hours: Math.floor((abs % 86_400_000) / 3_600_000),
+    minutes: Math.floor((abs % 3_600_000) / 60_000),
+    past: totalMs <= 0,
+  };
+}

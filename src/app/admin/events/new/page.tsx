@@ -5,7 +5,7 @@ export default async function NewEventPage() {
   await requireAdmin();
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">אירוע חדש</h2>
+      <h2 className="page-title">אירוע חדש</h2>
       <EventForm />
     </div>
   );

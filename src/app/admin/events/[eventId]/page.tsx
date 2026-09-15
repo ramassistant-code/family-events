@@ -10,7 +10,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ even
   if (!event) notFound();
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">עריכת אירוע</h2>
+      <h2 className="page-title">עריכת אירוע</h2>
       <EventForm event={event} />
     </div>
   );

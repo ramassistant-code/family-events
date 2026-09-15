@@ -19,7 +19,7 @@ export default async function InvitationDetailPage({
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">{invitation.household_name}</h2>
+      <h2 className="page-title">{invitation.household_name}</h2>
       <InvitationForm
         eventId={eventId}
         invitation={invitation}

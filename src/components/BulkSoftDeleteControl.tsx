@@ -47,7 +47,7 @@ export function BulkSoftDeleteControl({
         מחק את המוצגות
       </button>
       {dialogOpen ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+        <div className="modal-backdrop fixed inset-0 z-50 grid place-items-center p-4">
           <div className="card max-w-md p-5">
             <h3 className="text-lg font-bold">העברה למחוקים</h3>
             <p className="mt-2 text-[var(--ink-soft)]">{confirmBody}</p>

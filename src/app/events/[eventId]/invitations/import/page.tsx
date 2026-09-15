@@ -13,7 +13,7 @@ export default async function ImportPage({ params }: { params: Promise<{ eventId
   }
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">ייבוא הזמנות</h2>
+      <h2 className="page-title">ייבוא הזמנות</h2>
       <ImportClient eventId={eventId} />
     </div>
   );

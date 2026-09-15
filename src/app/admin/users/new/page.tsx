@@ -7,7 +7,7 @@ export default async function NewUserPage() {
   const events = await listEvents();
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">משתמש חדש</h2>
+      <h2 className="page-title">משתמש חדש</h2>
       <UserForm events={events.map((event) => ({ id: event.id, name: event.name }))} memberships={[]} />
     </div>
   );

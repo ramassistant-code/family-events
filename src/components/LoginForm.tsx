@@ -23,7 +23,7 @@ export function LoginForm() {
         <input className="input" type="password" name="password" autoComplete="current-password" required />
       </label>
       {state?.error ? (
-        <p className="rounded-xl bg-[#f8e0e0] px-3 py-2 text-[var(--no)]" role="alert">
+        <p className="alert-error" role="alert">
           {state.error}
         </p>
       ) : null}
