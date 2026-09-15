@@ -30,7 +30,9 @@ export type ImportRow = {
 export const MISSING_COUNT_COLUMNS_WARNING =
   "לא זוהו עמודות מבוגרים/ילדים — נעשה שימוש בברירת מחדל 1/0";
 
-const HEADER_MAP: Record<string, keyof ImportRow | "skip"> = {
+type MappedColumn = keyof ImportRow | "skip" | "totalGuests";
+
+const HEADER_MAP: Record<string, MappedColumn> = {
   שם: "householdName",
   "שם משפחה": "householdName",
   משפחה: "householdName",
@@ -60,6 +62,8 @@ const HEADER_MAP: Record<string, keyof ImportRow | "skip"> = {
   "qty adults": "adults",
   "quantity adults": "adults",
   "adults count": "adults",
+  // Production files use «כמות» as total guests → adults; children stay 0 unless a ילדים column exists.
+  כמות: "totalGuests",
   ילדים: "children",
   ילד: "children",
   "ילד/ים": "children",
@@ -112,12 +116,12 @@ export function normalizeHeader(value: string): string {
     .toLowerCase();
 }
 
-const NORMALIZED_HEADER_MAP: Record<string, keyof ImportRow | "skip"> = {};
+const NORMALIZED_HEADER_MAP: Record<string, MappedColumn> = {};
 for (const [alias, field] of Object.entries(HEADER_MAP)) {
   NORMALIZED_HEADER_MAP[normalizeHeader(alias)] = field;
 }
 
-function lookupHeader(raw: string): keyof ImportRow | "skip" | null {
+function lookupHeader(raw: string): MappedColumn | null {
   const normalized = normalizeHeader(raw);
   if (!normalized) return null;
   return NORMALIZED_HEADER_MAP[normalized] ?? null;
@@ -211,7 +215,10 @@ export function previewImport(
     return { rows: [], error: `לא ניתן לייבא יותר מ־${MAX_IMPORT_ROWS} שורות`, fileWarnings: [] };
   }
 
-  const missingCountColumns = !mapped.includes("adults") && !mapped.includes("children");
+  const hasAdultsCol = mapped.includes("adults");
+  const hasChildrenCol = mapped.includes("children");
+  const hasTotalGuestsCol = mapped.includes("totalGuests");
+  const missingCountColumns = !hasAdultsCol && !hasChildrenCol && !hasTotalGuestsCol;
   const fileWarnings = missingCountColumns ? [MISSING_COUNT_COLUMNS_WARNING] : [];
 
   const existing = new Set(existingNormalizedPhones);
@@ -220,7 +227,7 @@ export function previewImport(
 
   data.forEach((cells, index) => {
     const line = index + 2;
-    const get = (key: keyof ImportRow) => {
+    const get = (key: keyof ImportRow | "totalGuests") => {
       const col = mapped.findIndex((item) => item === key);
       return col >= 0 ? emptyToNull(cells[col]) : null;
     };
@@ -250,7 +257,7 @@ export function previewImport(
       warnings.push("צד מזמין לא זוהה — נשמר כ«אחר»");
     }
 
-    const adults = parseCount(get("adults"), 1);
+    const adults = parseCount(hasAdultsCol ? get("adults") : get("totalGuests"), 1);
     const children = parseCount(get("children"), 0);
     if (adults.error) errors.push(`מבוגרים: ${adults.error}`);
     if (children.error) errors.push(`ילדים: ${children.error}`);

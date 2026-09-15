@@ -9,6 +9,7 @@ describe("import preview", () => {
     expect(normalizeHeader("מבוגר/ים")).toBe("מבוגרים");
     expect(normalizeHeader("מס' מבוגרים")).toBe("מס מבוגרים");
     expect(normalizeHeader("  כמות   מבוגרים ")).toBe("כמות מבוגרים");
+    expect(normalizeHeader("כמות")).toBe("כמות");
     expect(normalizeHeader("num_adults")).toBe("num adults");
   });
 
@@ -51,6 +52,7 @@ describe("import preview", () => {
       { headers: ["שם", "מס' מבוגרים", "מס' ילדים"], adults: 1, children: 3 },
       { headers: ["שם", "  אורחים  ", "kids"], adults: 5, children: 1 },
       { headers: ["שם", "כמות   מבוגרים", "ילדים"], adults: 2, children: 0 },
+      { headers: ["שם", "כמות"], adults: 4, children: 0 },
       { headers: ["שם", "Adult", "Child"], adults: 2, children: 2 },
       { headers: ["שם", "num_adults", "qty children"], adults: 6, children: 4 },
     ];
@@ -62,6 +64,51 @@ describe("import preview", () => {
       expect(preview.rows[0]?.children, testCase.headers.join("|")).toBe(testCase.children);
       expect(preview.rows[0]?.errors, testCase.headers.join("|")).toEqual([]);
     }
+  });
+
+  it("maps «כמות» as total guests to adults, with children 0", () => {
+    const preview = previewImport(
+      [
+        ["שם", "כמות"],
+        ["משפחה א", "4"],
+        ["משפחה ב", "2.0"],
+      ],
+      [],
+    );
+    expect(preview.error).toBeUndefined();
+    expect(preview.fileWarnings).toEqual([]);
+    expect(preview.rows[0].adults).toBe(4);
+    expect(preview.rows[0].children).toBe(0);
+    expect(preview.rows[1].adults).toBe(2);
+    expect(preview.rows[1].children).toBe(0);
+    expect(preview.rows.every((row) => row.errors.length === 0)).toBe(true);
+    expect(preview.rows.every((row) => row.warnings.length === 0)).toBe(true);
+  });
+
+  it("lets מבוגרים/ילדים override כמות when those columns exist", () => {
+    const preview = previewImport(
+      [
+        ["שם", "כמות", "מבוגרים", "ילדים"],
+        ["משפחה", "10", "2", "1"],
+      ],
+      [],
+    );
+    expect(preview.rows[0].adults).toBe(2);
+    expect(preview.rows[0].children).toBe(1);
+    expect(preview.fileWarnings).toEqual([]);
+  });
+
+  it("uses כמות for adults and ילדים for children when both exist", () => {
+    const preview = previewImport(
+      [
+        ["שם", "כמות", "ילדים"],
+        ["משפחה", "5", "2"],
+      ],
+      [],
+    );
+    expect(preview.rows[0].adults).toBe(5);
+    expect(preview.rows[0].children).toBe(2);
+    expect(preview.fileWarnings).toEqual([]);
   });
 
   it("accepts Excel-like integer-valued numeric strings", () => {
