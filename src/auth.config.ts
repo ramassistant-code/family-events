@@ -1,6 +1,21 @@
 import type { NextAuthConfig } from "next-auth";
 
+/** AUTH_SECRET must be passed explicitly so Edge middleware can sign/verify JWTs. */
+export function resolveAuthSecret(): string | undefined {
+  const secret = process.env.AUTH_SECRET;
+  if (secret) {
+    return secret;
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET is required in production. Set AUTH_SECRET in the environment.",
+    );
+  }
+  return undefined;
+}
+
 export const authConfig = {
+  secret: process.env.AUTH_SECRET ?? resolveAuthSecret(),
   trustHost: true,
   pages: {
     signIn: "/login",
