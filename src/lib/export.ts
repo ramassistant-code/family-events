@@ -66,6 +66,86 @@ export async function invitationsToExcelBuffer(rows: ExportInvitation[]): Promis
   return Buffer.from(buffer);
 }
 
+/**
+ * Flatten an ExcelJS cell value to a string without `String(object)` → `[object Object]`.
+ * Handles formula/result, richText, hyperlink, sharedString, numbers, and Cell-like wrappers.
+ */
+export function excelCellToString(value: unknown): string {
+  if (value == null) return "";
+  switch (typeof value) {
+    case "string":
+      return value;
+    case "number":
+      return Number.isFinite(value) ? String(value) : "";
+    case "boolean":
+      return value ? "TRUE" : "FALSE";
+    case "bigint":
+      return String(value);
+    default:
+      break;
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? "" : value.toISOString().slice(0, 10);
+  }
+  if (typeof value !== "object") return "";
+
+  const obj = value as Record<string, unknown>;
+
+  // ExcelJS Cell instance (has address/type); CellValue unions do not.
+  if ("value" in obj && ("address" in obj || "type" in obj)) {
+    const fromValue = excelCellToString(obj.value);
+    if (fromValue) return fromValue;
+    return typeof obj.text === "string" ? obj.text : "";
+  }
+
+  if (Array.isArray(obj.richText)) {
+    return obj.richText
+      .map((part) => {
+        if (part == null) return "";
+        if (typeof part === "string") return part;
+        if (typeof part === "object" && part && "text" in part) {
+          return excelCellToString((part as { text?: unknown }).text);
+        }
+        return excelCellToString(part);
+      })
+      .join("");
+  }
+
+  if ("formula" in obj || "sharedFormula" in obj) {
+    return excelCellToString(obj.result);
+  }
+
+  if (typeof obj.error === "string") {
+    return "";
+  }
+
+  if ("sharedString" in obj) {
+    return excelCellToString(obj.sharedString);
+  }
+
+  if ("hyperlink" in obj) {
+    return excelCellToString(obj.text);
+  }
+
+  if (typeof obj.text === "string" && !("value" in obj)) {
+    return obj.text;
+  }
+
+  if ("result" in obj) {
+    return excelCellToString(obj.result);
+  }
+
+  // ExcelJS Cell instance: prefer .value, then displayed .text
+  if ("value" in obj) {
+    const fromValue = excelCellToString(obj.value);
+    if (fromValue) return fromValue;
+    if (typeof obj.text === "string") return obj.text;
+    return "";
+  }
+
+  return "";
+}
+
 export async function excelFileToTable(buffer: ArrayBuffer | Buffer): Promise<string[][]> {
   const workbook = new ExcelJS.Workbook();
   // exceljs accepts Buffer in Node
@@ -74,14 +154,7 @@ export async function excelFileToTable(buffer: ArrayBuffer | Buffer): Promise<st
   if (!sheet) return [];
   const table: string[][] = [];
   sheet.eachRow((row) => {
-    const cells = (row.values as Array<unknown>).slice(1).map((value) => {
-      if (value == null) return "";
-      if (value instanceof Date) return value.toISOString().slice(0, 10);
-      if (typeof value === "object" && value && "text" in (value as { text?: string })) {
-        return String((value as { text?: string }).text ?? "");
-      }
-      return String(value);
-    });
+    const cells = (row.values as Array<unknown>).slice(1).map((value) => excelCellToString(value));
     table.push(cells);
   });
   return table;

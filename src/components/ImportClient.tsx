@@ -12,6 +12,7 @@ export function ImportClient({ eventId }: { eventId: string }) {
   const [summary, setSummary] = useState<{ total: number; valid: number; warnings: number; errors: number } | null>(
     null,
   );
+  const [fileWarnings, setFileWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [created, setCreated] = useState<number | null>(null);
@@ -25,6 +26,7 @@ export function ImportClient({ eventId }: { eventId: string }) {
           setPending(true);
           setError(null);
           setCreated(null);
+          setFileWarnings([]);
           const formData = new FormData(event.currentTarget);
           const result = await previewImportAction(eventId, formData);
           setPending(false);
@@ -34,6 +36,7 @@ export function ImportClient({ eventId }: { eventId: string }) {
           }
           setRows(result.rows);
           setSummary(result.summary);
+          setFileWarnings(result.fileWarnings);
         }}
       >
         <label className="field">
@@ -49,6 +52,13 @@ export function ImportClient({ eventId }: { eventId: string }) {
       </form>
 
       {error ? <p className="text-[var(--no)]">{error}</p> : null}
+      {fileWarnings.length ? (
+        <div className="card p-4 text-sm text-[var(--wait)]" role="status">
+          {fileWarnings.map((warning) => (
+            <p key={warning}>{warning}</p>
+          ))}
+        </div>
+      ) : null}
       {summary ? (
         <div className="card p-4 text-sm">
           {summary.total} שורות · {summary.valid} תקינות · {summary.warnings} אזהרות · {summary.errors} שגיאות
@@ -65,6 +75,8 @@ export function ImportClient({ eventId }: { eventId: string }) {
                   <th>שם</th>
                   <th>טלפון</th>
                   <th>צד</th>
+                  <th>מבוגרים</th>
+                  <th>ילדים</th>
                   <th>קבוצה</th>
                   <th>הערות</th>
                 </tr>
@@ -76,6 +88,8 @@ export function ImportClient({ eventId }: { eventId: string }) {
                     <td>{row.householdName}</td>
                     <td>{row.phone}</td>
                     <td>{INVITING_SIDE_LABELS[row.invitingSide]}</td>
+                    <td>{row.adults}</td>
+                    <td>{row.children}</td>
                     <td>{row.groupName || "—"}</td>
                     <td>
                       {row.errors.join(" · ")}
