@@ -1,15 +1,18 @@
+import { BulkSoftDeleteControl } from "@/components/BulkSoftDeleteControl";
 import { EmptyState } from "@/components/Chips";
 import { InvitationStatusChip, SideChip } from "@/components/Chips";
 import { MarkContactedButton } from "@/components/MarkContactedButton";
 import { requireEventAccess } from "@/lib/access";
 import { formatDateJerusalem, formatDateTimeJerusalem } from "@/lib/dates";
+import { INVITATION_STATUS_LABELS, INVITING_SIDE_LABELS } from "@/lib/domain";
+import { parseListedInvitationFilters } from "@/lib/invitation-filters";
 import {
-  INVITATION_STATUS_LABELS,
-  INVITING_SIDE_LABELS,
-  type InvitationStatus,
-  type InvitingSide,
-} from "@/lib/domain";
-import { canEditInvitations, canExportInvitations, canImportInvitations } from "@/lib/permissions";
+  canBulkSoftDelete,
+  canEditInvitations,
+  canExportInvitations,
+  canImportInvitations,
+  invitationsEligibleForSoftDelete,
+} from "@/lib/permissions";
 import { listInvitationGroupNames, listInvitations } from "@/lib/queries";
 import { telHref, whatsappHref } from "@/lib/phone";
 import Link from "next/link";
@@ -25,21 +28,30 @@ export default async function InvitationsPage({
 }) {
   const { eventId } = await params;
   const query = await searchParams;
-  const { role } = await requireEventAccess(eventId);
-  const status = String(query.status ?? "") as InvitationStatus | "";
-  const side = String(query.side ?? "") as InvitingSide | "";
-  const followUp = String(query.followUp ?? "") as "today" | "overdue" | "";
-  const group = String(query.group ?? "");
-  const q = String(query.q ?? "");
+  const { user, role } = await requireEventAccess(eventId);
+  const filters = parseListedInvitationFilters({
+    q: String(query.q ?? ""),
+    status: String(query.status ?? ""),
+    side: String(query.side ?? ""),
+    followUp: String(query.followUp ?? ""),
+    group: String(query.group ?? ""),
+  });
+  const q = filters.query ?? "";
+  const status = filters.status ?? "";
+  const side = filters.side ?? "";
+  const followUp = filters.followUp ?? "";
+  const group = filters.group ?? "";
   const sort = String(query.sort ?? "name") as "name" | "status" | "follow_up" | "last_contacted" | "created";
 
   const [rows, groupNames] = await Promise.all([
-    listInvitations(eventId, { query: q, status, side, followUp, group, sort }),
+    listInvitations(eventId, { ...filters, sort }),
     listInvitationGroupNames(eventId),
   ]);
   const canEdit = canEditInvitations(role);
   const canImport = canImportInvitations(role);
   const canExport = canExportInvitations(role);
+  const canBulkDelete = canBulkSoftDelete(role);
+  const eligibleCount = invitationsEligibleForSoftDelete(role, user.id, rows).length;
   const exportHref = `/api/events/${eventId}/export?${new URLSearchParams({
     q,
     status,
@@ -68,8 +80,22 @@ export default async function InvitationsPage({
               הזמנה חדשה
             </Link>
           ) : null}
+          {canBulkDelete && eligibleCount > 0 ? (
+            <BulkSoftDeleteControl
+              eventId={eventId}
+              filters={filters}
+              listedCount={rows.length}
+              eligibleCount={eligibleCount}
+              isFamilyMember={role === "family_member"}
+            />
+          ) : null}
         </div>
       </div>
+      {canBulkDelete && rows.length > 0 && eligibleCount === 0 ? (
+        <p className="text-sm text-[var(--ink-soft)]">
+          אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין מה למחוק.
+        </p>
+      ) : null}
 
       <form className="card grid gap-3 p-4 md:grid-cols-3">
         <input

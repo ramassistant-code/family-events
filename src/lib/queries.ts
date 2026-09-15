@@ -435,6 +435,23 @@ export async function softDeleteInvitation(
   `;
 }
 
+export async function softDeleteInvitations(
+  eventId: string,
+  invitationIds: string[],
+  actorId: string,
+): Promise<InvitationRow[]> {
+  if (invitationIds.length === 0) return [];
+  const sql = getSql();
+  return sql<InvitationRow[]>`
+    UPDATE invitations
+    SET deleted_at = now(), deleted_by = ${actorId}, updated_by = ${actorId}, updated_at = now()
+    WHERE event_id = ${eventId}
+      AND deleted_at IS NULL
+      AND id = ANY(${invitationIds}::uuid[])
+    RETURNING ${sql.unsafe(invitationSelect())}
+  `;
+}
+
 export async function restoreInvitation(invitationId: string, actorId: string): Promise<InvitationRow | null> {
   const sql = getSql();
   const rows = await sql<InvitationRow[]>`

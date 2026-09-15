@@ -31,6 +31,12 @@ describe("import preview", () => {
     expect(summary.errors).toBe(1);
   });
 
+  it("does not treat phones missing from the active list as duplicates (soft-deleted rows)", () => {
+    const table = parseCsv(`שם,טלפון\nמשפחת א,0501234567`);
+    const preview = previewImport(table, []);
+    expect(preview.rows[0].warnings.some((item) => item.includes("כפול"))).toBe(false);
+  });
+
   it("maps the קבוצה column onto groupName", () => {
     const csv = `שם,טלפון,קבוצה,מבוגרים,ילדים
 משפחת א,0501234567,אבא כלה – שכנים,2,1
