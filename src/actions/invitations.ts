@@ -6,11 +6,14 @@ import { requireAdmin, requireEventAccess } from "@/lib/access";
 import { applyMarkContacted, applyStatusChange } from "@/lib/contact";
 import { todayInJerusalem } from "@/lib/dates";
 import { DEFAULT_INVITATION_STATUS, isInvitationStatus, isInvitingSide } from "@/lib/domain";
+import { parseListedInvitationFilters, type ListedInvitationFilterInput } from "@/lib/invitation-filters";
 import {
+  canBulkSoftDelete,
   canEditInvitations,
   canImportInvitations,
   canRestoreInvitation,
   canSoftDeleteInvitation,
+  invitationsEligibleForSoftDelete,
 } from "@/lib/permissions";
 import { normalizePhone } from "@/lib/phone";
 import {
@@ -19,8 +22,10 @@ import {
   insertActivity,
   insertInvitation,
   listActiveNormalizedPhones,
+  listInvitations,
   restoreInvitation,
   softDeleteInvitation,
+  softDeleteInvitations,
   updateInvitation,
 } from "@/lib/queries";
 import { excelFileToTable } from "@/lib/export";
@@ -228,6 +233,50 @@ export async function softDeleteInvitationAction(eventId: string, invitationId: 
   });
   revalidatePath(`/events/${eventId}`);
   redirect(`/events/${eventId}/invitations`);
+}
+
+export async function bulkSoftDeleteListedInvitationsAction(
+  eventId: string,
+  filterInput: ListedInvitationFilterInput,
+): Promise<{ ok: true; deleted: number } | { ok: false; error: string }> {
+  const { user, role } = await requireEventAccess(eventId);
+  if (!canBulkSoftDelete(role)) {
+    return { ok: false, error: "אין הרשאה למחוק הזמנות." };
+  }
+
+  const filters = parseListedInvitationFilters(filterInput);
+  const listed = await listInvitations(eventId, filters);
+  const eligible = invitationsEligibleForSoftDelete(role, user.id, listed);
+
+  if (eligible.length === 0) {
+    return {
+      ok: false,
+      error:
+        role === "family_member"
+          ? "אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין מה למחוק."
+          : "אין הזמנות למחיקה.",
+    };
+  }
+
+  const deleted = await softDeleteInvitations(
+    eventId,
+    eligible.map((invitation) => invitation.id),
+    user.id,
+  );
+
+  for (const invitation of deleted) {
+    await insertActivity({
+      eventId,
+      invitationId: invitation.id,
+      actorId: user.id,
+      action: "invitation.soft_deleted",
+      summary: `נמחקה הזמנה «${invitation.household_name}»`,
+    });
+  }
+
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath("/admin/trash");
+  return { ok: true, deleted: deleted.length };
 }
 
 export async function restoreInvitationAction(invitationId: string, eventId: string) {

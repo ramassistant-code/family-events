@@ -43,6 +43,18 @@ export function canSoftDeleteInvitation(
   return false;
 }
 
+export function canBulkSoftDelete(role: AppRole | null): boolean {
+  return role === "system_admin" || role === "family_member";
+}
+
+export function invitationsEligibleForSoftDelete<T extends { created_by: string | null }>(
+  role: AppRole | null,
+  actorId: string,
+  invitations: T[],
+): T[] {
+  return invitations.filter((invitation) => canSoftDeleteInvitation(role, actorId, invitation.created_by));
+}
+
 export function canRestoreInvitation(role: AppRole | null): boolean {
   return role === "system_admin";
 }
