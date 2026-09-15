@@ -17,7 +17,7 @@ export function EventCoverImage({
           alt={alt}
           fill
           priority
-          className="object-cover"
+          className="object-contain"
           sizes="(min-width: 1024px) 1120px, 100vw"
         />
       </div>
@@ -27,7 +27,7 @@ export function EventCoverImage({
   if (variant === "banner") {
     return (
       <div className="relative h-24 w-full overflow-hidden bg-[var(--paper-deep)]">
-        <Image src={src} alt={alt} fill className="object-cover" sizes="(min-width: 768px) 50vw, 100vw" />
+        <Image src={src} alt={alt} fill className="object-contain" sizes="(min-width: 768px) 50vw, 100vw" />
       </div>
     );
   }
