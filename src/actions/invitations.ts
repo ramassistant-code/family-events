@@ -6,13 +6,19 @@ import { requireAdmin, requireEventAccess } from "@/lib/access";
 import { applyMarkContacted, applyStatusChange } from "@/lib/contact";
 import { todayInJerusalem } from "@/lib/dates";
 import { DEFAULT_INVITATION_STATUS, isInvitationStatus, isInvitingSide } from "@/lib/domain";
-import { parseListedInvitationFilters, type ListedInvitationFilterInput } from "@/lib/invitation-filters";
+import {
+  normalizeInvitationGroupName,
+  parseListedInvitationFilters,
+  type ListedInvitationFilterInput,
+} from "@/lib/invitation-filters";
 import {
   canBulkSoftDelete,
+  canBulkUpdateInvitationGroup,
   canEditInvitations,
   canImportInvitations,
   canRestoreInvitation,
   canSoftDeleteInvitation,
+  invitationsEligibleForGroupUpdate,
   invitationsEligibleForSoftDelete,
 } from "@/lib/permissions";
 import { normalizePhone } from "@/lib/phone";
@@ -27,6 +33,7 @@ import {
   softDeleteInvitation,
   softDeleteInvitations,
   updateInvitation,
+  updateInvitationGroupNames,
 } from "@/lib/queries";
 import { excelFileToTable } from "@/lib/export";
 import { importSummary, parseCsv, partitionConfirmImportRows, previewImport, type ImportRow } from "@/lib/import";
@@ -106,7 +113,7 @@ export async function saveInvitationAction(
     accessibilityNotes: optional(formData, "accessibilityNotes"),
     transportNotes: optional(formData, "transportNotes"),
     notes: optional(formData, "notes"),
-    groupName: optional(formData, "groupName"),
+    groupName: normalizeInvitationGroupName(text(formData, "groupName")),
   };
 
   if (!invitationId) {
@@ -277,6 +284,52 @@ export async function bulkSoftDeleteListedInvitationsAction(
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/admin/trash");
   return { ok: true, deleted: deleted.length };
+}
+
+export async function bulkUpdateListedInvitationGroupsAction(
+  eventId: string,
+  filterInput: ListedInvitationFilterInput,
+  groupNameRaw: string,
+): Promise<{ ok: true; updated: number } | { ok: false; error: string }> {
+  const { user, role } = await requireEventAccess(eventId);
+  if (!canBulkUpdateInvitationGroup(role)) {
+    return { ok: false, error: "אין הרשאה לעדכן קבוצה." };
+  }
+
+  const filters = parseListedInvitationFilters(filterInput);
+  const listed = await listInvitations(eventId, filters);
+  const eligible = invitationsEligibleForGroupUpdate(role, user.id, listed);
+
+  if (eligible.length === 0) {
+    return {
+      ok: false,
+      error:
+        role === "family_member"
+          ? "אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין מה לעדכן."
+          : "אין הזמנות לעדכון.",
+    };
+  }
+
+  const groupName = normalizeInvitationGroupName(groupNameRaw);
+  const updated = await updateInvitationGroupNames(
+    eventId,
+    eligible.map((invitation) => invitation.id),
+    groupName,
+    user.id,
+  );
+
+  await insertActivity({
+    eventId,
+    actorId: user.id,
+    action: "invitation.group_updated",
+    summary: groupName
+      ? `עודכנה קבוצה «${groupName}» עבור ${updated.length} הזמנות`
+      : `נוקתה הקבוצה מ-${updated.length} הזמנות`,
+    details: { updated: updated.length, groupName },
+  });
+
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true, updated: updated.length };
 }
 
 export async function restoreInvitationAction(invitationId: string, eventId: string) {

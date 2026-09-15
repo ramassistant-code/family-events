@@ -1,4 +1,5 @@
 import { BulkSoftDeleteControl } from "@/components/BulkSoftDeleteControl";
+import { BulkUpdateGroupControl } from "@/components/BulkUpdateGroupControl";
 import { EmptyState } from "@/components/Chips";
 import { InvitationStatusChip, SideChip } from "@/components/Chips";
 import { MarkContactedButton } from "@/components/MarkContactedButton";
@@ -8,9 +9,11 @@ import { INVITATION_STATUS_LABELS, INVITING_SIDE_LABELS } from "@/lib/domain";
 import { parseListedInvitationFilters } from "@/lib/invitation-filters";
 import {
   canBulkSoftDelete,
+  canBulkUpdateInvitationGroup,
   canEditInvitations,
   canExportInvitations,
   canImportInvitations,
+  invitationsEligibleForGroupUpdate,
   invitationsEligibleForSoftDelete,
 } from "@/lib/permissions";
 import { listInvitationGroupNames, listInvitations } from "@/lib/queries";
@@ -51,7 +54,9 @@ export default async function InvitationsPage({
   const canImport = canImportInvitations(role);
   const canExport = canExportInvitations(role);
   const canBulkDelete = canBulkSoftDelete(role);
+  const canBulkUpdateGroup = canBulkUpdateInvitationGroup(role);
   const eligibleCount = invitationsEligibleForSoftDelete(role, user.id, rows).length;
+  const eligibleGroupCount = invitationsEligibleForGroupUpdate(role, user.id, rows).length;
   const exportHref = `/api/events/${eventId}/export?${new URLSearchParams({
     q,
     status,
@@ -80,6 +85,15 @@ export default async function InvitationsPage({
               הזמנה חדשה
             </Link>
           ) : null}
+          {canBulkUpdateGroup && eligibleGroupCount > 0 ? (
+            <BulkUpdateGroupControl
+              eventId={eventId}
+              filters={filters}
+              listedCount={rows.length}
+              eligibleCount={eligibleGroupCount}
+              isFamilyMember={role === "family_member"}
+            />
+          ) : null}
           {canBulkDelete && eligibleCount > 0 ? (
             <BulkSoftDeleteControl
               eventId={eventId}
@@ -91,9 +105,9 @@ export default async function InvitationsPage({
           ) : null}
         </div>
       </div>
-      {canBulkDelete && rows.length > 0 && eligibleCount === 0 ? (
+      {(canBulkDelete || canBulkUpdateGroup) && rows.length > 0 && eligibleGroupCount === 0 ? (
         <p className="text-sm text-[var(--ink-soft)]">
-          אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין מה למחוק.
+          אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין פעולות מרוכזות זמינות.
         </p>
       ) : null}
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseListedInvitationFilters } from "./invitation-filters";
+import { normalizeInvitationGroupName, parseListedInvitationFilters } from "./invitation-filters";
 
 describe("parseListedInvitationFilters", () => {
   it("accepts the invitations list query params", () => {
@@ -36,5 +36,13 @@ describe("parseListedInvitationFilters", () => {
       followUp: "",
       group: "",
     });
+  });
+});
+
+describe("normalizeInvitationGroupName", () => {
+  it("trims a non-empty group and stores blank as null", () => {
+    expect(normalizeInvitationGroupName("  שכנים  ")).toBe("שכנים");
+    expect(normalizeInvitationGroupName("")).toBeNull();
+    expect(normalizeInvitationGroupName("   ")).toBeNull();
   });
 });
