@@ -34,7 +34,7 @@ export function EventTypeLabel({ type }: { type: EventType }) {
 export function EmptyState({ title, body, action }: { title: string; body: string; action?: React.ReactNode }) {
   return (
     <div className="card grid place-items-center gap-2 px-6 py-12 text-center">
-      <h2 className="text-lg font-bold">{title}</h2>
+      <h2 className="font-display text-xl">{title}</h2>
       <p className="text-[var(--ink-soft)]">{body}</p>
       {action}
     </div>

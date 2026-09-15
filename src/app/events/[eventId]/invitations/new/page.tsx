@@ -13,7 +13,7 @@ export default async function NewInvitationPage({ params }: { params: Promise<{ 
   }
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">הזמנה חדשה</h2>
+      <h2 className="page-title">הזמנה חדשה</h2>
       <InvitationForm eventId={eventId} />
     </div>
   );

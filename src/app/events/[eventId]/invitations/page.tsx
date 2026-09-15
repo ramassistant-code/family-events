@@ -22,6 +22,15 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+function invitationsHref(eventId: string, next: Record<string, string>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(next)) {
+    if (value) params.set(key, value);
+  }
+  const query = params.toString();
+  return `/events/${eventId}/invitations${query ? `?${query}` : ""}`;
+}
+
 export default async function InvitationsPage({
   params,
   searchParams,
@@ -64,11 +73,16 @@ export default async function InvitationsPage({
     followUp,
     group,
   }).toString()}`;
+  const currentFilters = { q, status, side, followUp, group, sort };
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold">הזמנות</h2>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="label-caps">רשימת מוזמנים</p>
+          <h2 className="page-title mt-1">הזמנות</h2>
+          <p className="mt-1 text-sm text-[var(--ink-soft)]">{rows.length} מוצגות</p>
+        </div>
         <div className="flex flex-wrap gap-2">
           {canImport ? (
             <Link className="btn btn-secondary" href={`/events/${eventId}/invitations/import`}>
@@ -112,20 +126,27 @@ export default async function InvitationsPage({
       ) : null}
 
       <form className="card grid gap-3 p-4 md:grid-cols-3">
-        <input
-          className="input md:col-span-3"
-          name="q"
-          placeholder="חיפוש לפי שם, טלפון או קבוצה"
-          defaultValue={q}
-        />
-        <select className="select" name="status" defaultValue={status}>
-          <option value="">כל הסטטוסים</option>
+        <input className="input md:col-span-3" name="q" placeholder="חיפוש לפי שם, טלפון או קבוצה" defaultValue={q} />
+        <input type="hidden" name="status" value={status} />
+        <div className="md:col-span-3 flex gap-2 overflow-x-auto pb-1">
+          <Link
+            href={invitationsHref(eventId, { ...currentFilters, status: "" })}
+            className={`filter-chip ${status === "" ? "is-active" : ""}`}
+            aria-current={status === "" ? "page" : undefined}
+          >
+            הכל
+          </Link>
           {Object.entries(INVITATION_STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
+            <Link
+              key={value}
+              href={invitationsHref(eventId, { ...currentFilters, status: value })}
+              className={`filter-chip ${status === value ? "is-active" : ""}`}
+              aria-current={status === value ? "page" : undefined}
+            >
               {label}
-            </option>
+            </Link>
           ))}
-        </select>
+        </div>
         <select className="select" name="side" defaultValue={side}>
           <option value="">כל הצדדים</option>
           {Object.entries(INVITING_SIDE_LABELS).map(([value, label]) => (
@@ -155,7 +176,7 @@ export default async function InvitationsPage({
           <option value="last_contacted">מיון לפי יצירת קשר</option>
           <option value="created">מיון לפי יצירה</option>
         </select>
-        <button className="btn btn-secondary md:col-span-3 w-fit" type="submit">
+        <button className="btn btn-secondary w-fit md:col-span-2" type="submit">
           סינון
         </button>
       </form>
@@ -177,22 +198,29 @@ export default async function InvitationsPage({
           <div className="grid gap-3 lg:hidden">
             {rows.map((row) => {
               const wa = whatsappHref(row.phone, row.phone_normalized);
+              const note = row.notes?.trim();
               return (
-                <article key={row.id} className="card p-4">
+                <article
+                  key={row.id}
+                  className={`card invite-card p-4 ${note ? "has-notes" : ""}`}
+                  data-status={row.status}
+                >
                   <div className="flex items-start justify-between gap-2">
-                    <Link href={`/events/${eventId}/invitations/${row.id}`} className="text-lg font-bold">
+                    <Link href={`/events/${eventId}/invitations/${row.id}`} className="font-display text-xl">
                       {row.household_name}
                     </Link>
                     <InvitationStatusChip status={row.status} />
                   </div>
                   <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                    {row.phone || "ללא טלפון"} · {row.adults + row.children} מוזמנים
+                    {row.phone || "ללא טלפון"} · {row.adults} מבוגרים
+                    {row.children ? ` + ${row.children} ילדים` : ""}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     <SideChip side={row.inviting_side} />
                     {row.group_name ? <span className="chip chip-not_contacted">{row.group_name}</span> : null}
                     <span className="chip chip-not_contacted">מעקב {formatDateJerusalem(row.follow_up_on)}</span>
                   </div>
+                  {note ? <p className="quote-note">„{note}”</p> : null}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {wa ? (
                       <a className="btn btn-secondary" href={wa} target="_blank" rel="noreferrer">

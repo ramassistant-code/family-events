@@ -12,7 +12,7 @@ export default async function EditUserPage({ params }: { params: Promise<{ userI
   const memberships = await listMembershipsForUser(userId);
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">עריכת משתמש</h2>
+      <h2 className="page-title">עריכת משתמש</h2>
       <UserForm
         user={user}
         events={events.map((event) => ({ id: event.id, name: event.name }))}

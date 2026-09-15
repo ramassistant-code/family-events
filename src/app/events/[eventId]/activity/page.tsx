@@ -15,7 +15,7 @@ export default async function ActivityPage({ params }: { params: Promise<{ event
   return (
     <div className="grid gap-4">
       <div>
-        <h2 className="text-2xl font-bold">פעילות</h2>
+        <h2 className="page-title">פעילות</h2>
         <p className="text-[var(--ink-soft)]">
           {full ? "היסטוריה מלאה לאירוע זה." : "תקציר פעולות אחרונות בלבד."}
         </p>

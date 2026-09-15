@@ -23,7 +23,7 @@ export default async function TrashPage({
 
   return (
     <div className="grid gap-4">
-      <h2 className="text-2xl font-bold">מחוקים / שחזור</h2>
+      <h2 className="page-title">מחוקים / שחזור</h2>
       <p className="text-[var(--ink-soft)]">אין מחיקה פיזית בממשק. שחזור זמין למנהל מערכת בלבד.</p>
       {items.length === 0 ? (
         <div className="card p-8 text-center">אין פריטים מחוקים</div>
@@ -32,7 +32,7 @@ export default async function TrashPage({
           {items.map((row) => (
             <article key={row.id} className="card flex flex-wrap items-center justify-between gap-3 p-4">
               <div>
-                <h3 className="font-bold">{row.household_name}</h3>
+                <h3 className="font-display text-lg">{row.household_name}</h3>
                 <p className="text-sm text-[var(--ink-soft)]">
                   {row.eventName} · נמחק {formatDateTimeJerusalem(row.deleted_at)} · {row.deleted_by_name || "לא ידוע"}
                 </p>

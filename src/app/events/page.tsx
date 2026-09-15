@@ -26,7 +26,7 @@ export default async function EventsPickerPage() {
     >
       {events.length === 0 ? (
         <div className="card p-8 text-center">
-          <h2 className="text-xl font-bold">אין אירועים מוקצים</h2>
+          <h2 className="font-display text-xl">אין אירועים מוקצים</h2>
           <p className="mt-2 text-[var(--ink-soft)]">פנו למנהל המערכת כדי לקבל גישה לאירוע.</p>
         </div>
       ) : (
@@ -35,14 +35,14 @@ export default async function EventsPickerPage() {
             <Link
               key={event.id}
               href={`/events/${event.id}/dashboard`}
-              className="card block overflow-hidden hover:border-[var(--gold)]"
+              className="card card-interactive block overflow-hidden"
             >
               {event.cover_image_url ? (
                 <EventCoverImage src={event.cover_image_url} alt={`תמונת כיסוי של ${event.name}`} variant="banner" />
               ) : null}
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-xl font-bold">{event.name}</h2>
+                  <h2 className="font-display text-xl">{event.name}</h2>
                   <EventStatusChip status={event.status} />
                 </div>
                 <p className="mt-2 text-[var(--ink-soft)]">

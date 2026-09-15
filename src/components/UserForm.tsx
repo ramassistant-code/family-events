@@ -67,7 +67,7 @@ export function UserForm({
       </label>
 
       {!admin ? (
-        <fieldset className="grid gap-3 rounded-xl border border-[var(--line)] p-3">
+        <fieldset className="grid gap-3 rounded-lg border border-[var(--line)] p-3">
           <legend className="px-1 font-semibold">שיוך לאירועים</legend>
           {events.map((event) => {
             const current = memberships.find((item) => item.event_id === event.id);

@@ -11,7 +11,7 @@ export function EventCoverImage({
 }) {
   if (variant === "hero") {
     return (
-      <div className="relative aspect-[2/1] w-full overflow-hidden rounded-[1.1rem] border border-[var(--line)] bg-[var(--paper-deep)] sm:aspect-[21/9]">
+      <div className="cover-frame relative aspect-[2/1] w-full overflow-hidden rounded-xl sm:aspect-[21/9]">
         <Image
           src={src}
           alt={alt}
@@ -26,7 +26,7 @@ export function EventCoverImage({
 
   if (variant === "banner") {
     return (
-      <div className="relative h-24 w-full overflow-hidden bg-[var(--paper-deep)]">
+      <div className="cover-frame relative h-24 w-full overflow-hidden">
         <Image src={src} alt={alt} fill className="object-contain" sizes="(min-width: 768px) 50vw, 100vw" />
       </div>
     );
@@ -38,7 +38,7 @@ export function EventCoverImage({
       alt={alt}
       width={64}
       height={64}
-      className="h-12 w-12 shrink-0 rounded-xl object-cover"
+      className="cover-frame h-12 w-12 shrink-0 rounded-lg object-cover"
     />
   );
 }
