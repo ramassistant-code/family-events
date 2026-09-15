@@ -307,7 +307,7 @@ export function importSummary(rows: ImportRow[]) {
   };
 }
 
-/** Create-only import: skip phones that already exist as active invitations (or earlier in this batch). */
+/** Create-only import: skip phones that already exist as active invitations for the event. */
 export function partitionConfirmImportRows(
   rows: ImportRow[],
   existingNormalizedPhones: Iterable<string>,
@@ -323,7 +323,6 @@ export function partitionConfirmImportRows(
       continue;
     }
     toCreate.push(row);
-    if (row.phoneNormalized) existing.add(row.phoneNormalized);
   }
 
   return { toCreate, skipped };

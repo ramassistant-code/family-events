@@ -232,7 +232,7 @@ describe("partitionConfirmImportRows", () => {
     expect(result.toCreate.map((row) => row.householdName)).toEqual(["חדשה", "בלי טלפון"]);
   });
 
-  it("creates multiple rows without phones and skips a repeated phone in the same batch", () => {
+  it("still creates rows without phones and in-file duplicate phones on the first confirm", () => {
     const phone = "+972509998877";
     const first = confirmRow({ line: 2, householdName: "א", phone: "0509998877", phoneNormalized: phone });
     const second = confirmRow({ line: 3, householdName: "ב", phone: "050-999-8877", phoneNormalized: phone });
@@ -240,8 +240,8 @@ describe("partitionConfirmImportRows", () => {
     const noPhoneB = confirmRow({ line: 5, householdName: "ד" });
 
     const result = partitionConfirmImportRows([first, second, noPhoneA, noPhoneB], []);
-    expect(result.skipped).toBe(1);
-    expect(result.toCreate.map((row) => row.householdName)).toEqual(["א", "ג", "ד"]);
+    expect(result.skipped).toBe(0);
+    expect(result.toCreate.map((row) => row.householdName)).toEqual(["א", "ב", "ג", "ד"]);
   });
 
   it("skips every matching phone when confirming the same preview twice", () => {
