@@ -30,6 +30,9 @@ export type ImportRow = {
 export const MISSING_COUNT_COLUMNS_WARNING =
   "לא זוהו עמודות מבוגרים/ילדים — נעשה שימוש בברירת מחדל 1/0";
 
+export const DUPLICATE_PHONE_SKIP_WARNING =
+  "טלפון כפול באירוע — הרשומה תדולג ולא תיווצר";
+
 type MappedColumn = keyof ImportRow | "skip" | "totalGuests";
 
 const HEADER_MAP: Record<string, MappedColumn> = {
@@ -242,7 +245,7 @@ export function previewImport(
     const phoneNormalized = normalizePhone(phone);
     if (phoneNormalized) {
       if (existing.has(phoneNormalized)) {
-        warnings.push("טלפון כפול באירוע — הרשומה תיווצר בכל זאת, בלי לעדכן את הקיימת");
+        warnings.push(DUPLICATE_PHONE_SKIP_WARNING);
       }
       const previous = seenInFile.get(phoneNormalized);
       if (previous) {
@@ -302,4 +305,25 @@ export function importSummary(rows: ImportRow[]) {
     warnings: withWarnings.length,
     errors: invalid.length,
   };
+}
+
+/** Create-only import: skip phones that already exist as active invitations for the event. */
+export function partitionConfirmImportRows(
+  rows: ImportRow[],
+  existingNormalizedPhones: Iterable<string>,
+): { toCreate: ImportRow[]; skipped: number } {
+  const existing = new Set(existingNormalizedPhones);
+  const toCreate: ImportRow[] = [];
+  let skipped = 0;
+
+  for (const row of rows) {
+    if (row.errors.length > 0 || !row.householdName) continue;
+    if (row.phoneNormalized && existing.has(row.phoneNormalized)) {
+      skipped += 1;
+      continue;
+    }
+    toCreate.push(row);
+  }
+
+  return { toCreate, skipped };
 }
