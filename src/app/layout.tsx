@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bodoni_Moda, Noto_Sans, Noto_Serif_Hebrew } from "next/font/google";
+import { Bodoni_Moda, Noto_Sans, Noto_Sans_Hebrew, Noto_Serif_Hebrew } from "next/font/google";
 import "./globals.css";
 
 const bodoni = Bodoni_Moda({
@@ -16,8 +16,15 @@ const notoSerifHebrew = Noto_Serif_Hebrew({
 });
 
 const notoSans = Noto_Sans({
-  subsets: ["hebrew", "latin"],
+  subsets: ["latin"],
   variable: "--font-noto",
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const notoSansHebrew = Noto_Sans_Hebrew({
+  subsets: ["hebrew"],
+  variable: "--font-noto-he",
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
 });
@@ -30,7 +37,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="he" dir="rtl">
-      <body className={`${bodoni.variable} ${notoSerifHebrew.variable} ${notoSans.variable} antialiased`}>
+      <body className={`${bodoni.variable} ${notoSerifHebrew.variable} ${notoSans.variable} ${notoSansHebrew.variable} antialiased`}>
         {children}
       </body>
     </html>
