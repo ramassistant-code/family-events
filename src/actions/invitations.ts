@@ -29,7 +29,7 @@ import {
   updateInvitation,
 } from "@/lib/queries";
 import { excelFileToTable } from "@/lib/export";
-import { importSummary, parseCsv, previewImport, type ImportRow } from "@/lib/import";
+import { importSummary, parseCsv, partitionConfirmImportRows, previewImport, type ImportRow } from "@/lib/import";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -341,9 +341,10 @@ export async function confirmImportAction(eventId: string, rows: ImportRow[]) {
   if (!canImportInvitations(role)) {
     return { ok: false as const, error: "אין הרשאה לייבוא." };
   }
-  const valid = rows.filter((row) => row.errors.length === 0 && row.householdName);
+  const existing = await listActiveNormalizedPhones(eventId);
+  const { toCreate, skipped } = partitionConfirmImportRows(rows, existing);
   let created = 0;
-  for (const row of valid) {
+  for (const row of toCreate) {
     await insertInvitation({
       eventId,
       householdName: row.householdName,
@@ -367,9 +368,12 @@ export async function confirmImportAction(eventId: string, rows: ImportRow[]) {
     eventId,
     actorId: user.id,
     action: "invitation.imported",
-    summary: `יובאו ${created} הזמנות חדשות`,
-    details: { created, warnings: rows.filter((row) => row.warnings.length > 0).length },
+    summary:
+      skipped > 0
+        ? `יובאו ${created} הזמנות חדשות, דולגו ${skipped}`
+        : `יובאו ${created} הזמנות חדשות`,
+    details: { created, skipped, warnings: rows.filter((row) => row.warnings.length > 0).length },
   });
   revalidatePath(`/events/${eventId}`);
-  return { ok: true as const, created };
+  return { ok: true as const, created, skipped };
 }

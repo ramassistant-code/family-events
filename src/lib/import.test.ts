@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { importSummary, MISSING_COUNT_COLUMNS_WARNING, normalizeHeader, parseCsv, previewImport } from "./import";
+import {
+  DUPLICATE_PHONE_SKIP_WARNING,
+  importSummary,
+  MISSING_COUNT_COLUMNS_WARNING,
+  normalizeHeader,
+  parseCsv,
+  partitionConfirmImportRows,
+  previewImport,
+  type ImportRow,
+} from "./import";
 import { DEFAULT_INVITATION_STATUS } from "./domain";
 import { canSoftDeleteInvitation, canEditInvitations, canImportInvitations } from "./permissions";
 
@@ -22,7 +31,7 @@ describe("import preview", () => {
     const preview = previewImport(table, ["+972501234567"]);
     expect(preview.error).toBeUndefined();
     expect(preview.rows).toHaveLength(3);
-    expect(preview.rows[0].warnings.some((item) => item.includes("כפול"))).toBe(true);
+    expect(preview.rows[0].warnings).toContain(DUPLICATE_PHONE_SKIP_WARNING);
     expect(preview.rows[1].warnings.some((item) => item.includes("בתוך הקובץ"))).toBe(true);
     expect(preview.rows[2].errors).toContain("חסר שם הזמנה");
     expect(preview.rows[0].status).toBe(DEFAULT_INVITATION_STATUS);
@@ -170,6 +179,87 @@ describe("import preview", () => {
     const data = Array.from({ length: 2001 }, () => ["משפחה"]);
     const preview = previewImport([header, ...data], []);
     expect(preview.error).toMatch(/2,000|2000/);
+  });
+});
+
+function confirmRow(partial: Partial<ImportRow> & Pick<ImportRow, "householdName">): ImportRow {
+  return {
+    line: 2,
+    phone: null,
+    phoneNormalized: null,
+    invitingSide: "other",
+    adults: 1,
+    children: 0,
+    status: DEFAULT_INVITATION_STATUS,
+    followUpOn: null,
+    foodNotes: null,
+    accessibilityNotes: null,
+    transportNotes: null,
+    notes: null,
+    groupName: null,
+    warnings: [],
+    errors: [],
+    ...partial,
+  };
+}
+
+describe("partitionConfirmImportRows", () => {
+  it("skips phones that already exist as active invitations and still creates the rest", () => {
+    const existing = "+972501234567";
+    const duplicate = confirmRow({
+      line: 2,
+      householdName: "קיימת",
+      phone: "0501234567",
+      phoneNormalized: existing,
+    });
+    const fresh = confirmRow({
+      line: 3,
+      householdName: "חדשה",
+      phone: "0501111111",
+      phoneNormalized: "+972501111111",
+    });
+    const noPhone = confirmRow({ line: 4, householdName: "בלי טלפון" });
+    const invalid = confirmRow({
+      line: 5,
+      householdName: "",
+      errors: ["חסר שם הזמנה"],
+      phone: "0502223344",
+      phoneNormalized: "+972502223344",
+    });
+
+    const result = partitionConfirmImportRows([duplicate, fresh, noPhone, invalid], [existing]);
+    expect(result.skipped).toBe(1);
+    expect(result.toCreate.map((row) => row.householdName)).toEqual(["חדשה", "בלי טלפון"]);
+  });
+
+  it("creates multiple rows without phones and skips a repeated phone in the same batch", () => {
+    const phone = "+972509998877";
+    const first = confirmRow({ line: 2, householdName: "א", phone: "0509998877", phoneNormalized: phone });
+    const second = confirmRow({ line: 3, householdName: "ב", phone: "050-999-8877", phoneNormalized: phone });
+    const noPhoneA = confirmRow({ line: 4, householdName: "ג" });
+    const noPhoneB = confirmRow({ line: 5, householdName: "ד" });
+
+    const result = partitionConfirmImportRows([first, second, noPhoneA, noPhoneB], []);
+    expect(result.skipped).toBe(1);
+    expect(result.toCreate.map((row) => row.householdName)).toEqual(["א", "ג", "ד"]);
+  });
+
+  it("skips every matching phone when confirming the same preview twice", () => {
+    const rows = [
+      confirmRow({ line: 2, householdName: "א", phone: "0501234567", phoneNormalized: "+972501234567" }),
+      confirmRow({ line: 3, householdName: "ב", phone: "0501111111", phoneNormalized: "+972501111111" }),
+      confirmRow({ line: 4, householdName: "ג" }),
+    ];
+    const first = partitionConfirmImportRows(rows, []);
+    expect(first.skipped).toBe(0);
+    expect(first.toCreate).toHaveLength(3);
+
+    const alreadyCreated = first.toCreate
+      .map((row) => row.phoneNormalized)
+      .filter((value): value is string => Boolean(value));
+    const second = partitionConfirmImportRows(rows, alreadyCreated);
+    expect(second.skipped).toBe(2);
+    expect(second.toCreate.map((row) => row.householdName)).toEqual(["ג"]);
   });
 });
 
