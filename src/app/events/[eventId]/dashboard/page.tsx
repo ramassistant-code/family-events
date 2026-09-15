@@ -1,4 +1,5 @@
 import { InvitationStatusChip, SideChip } from "@/components/Chips";
+import { EventCoverImage } from "@/components/EventCoverImage";
 import { requireEventAccess } from "@/lib/access";
 import { summarizeCapacity } from "@/lib/capacity";
 import { INVITATION_STATUS_LABELS, INVITING_SIDE_LABELS } from "@/lib/domain";
@@ -28,6 +29,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ even
 
   return (
     <div className="grid gap-4">
+      {event.cover_image_url ? (
+        <EventCoverImage src={event.cover_image_url} alt={`תמונת כיסוי של ${event.name}`} variant="hero" />
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold">דשבורד</h2>

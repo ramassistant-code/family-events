@@ -29,11 +29,17 @@ export type EventRow = {
   location: string | null;
   capacity: number;
   owners_text: string | null;
+  cover_image_url: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: Date;
   updated_at: Date;
 };
+
+const EVENT_COLUMNS = `
+  id, name, event_type, status, starts_at, location, capacity, owners_text,
+  cover_image_url, created_by, updated_by, created_at, updated_at
+`;
 
 export type MembershipRow = {
   id: string;
@@ -162,8 +168,7 @@ export async function accessibleEvents(userId: string, isSystemAdmin: boolean): 
   const sql = getSql();
   if (isSystemAdmin) {
     const events = await sql<EventRow[]>`
-      SELECT id, name, event_type, status, starts_at, location, capacity, owners_text,
-             created_by, updated_by, created_at, updated_at
+      SELECT ${sql.unsafe(EVENT_COLUMNS)}
       FROM events
       ORDER BY starts_at NULLS LAST, name
     `;
@@ -171,7 +176,7 @@ export async function accessibleEvents(userId: string, isSystemAdmin: boolean): 
   }
   return sql<(EventRow & { role: AppRole })[]>`
     SELECT e.id, e.name, e.event_type, e.status, e.starts_at, e.location, e.capacity, e.owners_text,
-           e.created_by, e.updated_by, e.created_at, e.updated_at, m.role
+           e.cover_image_url, e.created_by, e.updated_by, e.created_at, e.updated_at, m.role
     FROM events e
     JOIN event_memberships m ON m.event_id = e.id
     WHERE m.user_id = ${userId}
@@ -182,8 +187,7 @@ export async function accessibleEvents(userId: string, isSystemAdmin: boolean): 
 export async function getEvent(eventId: string): Promise<EventRow | null> {
   const sql = getSql();
   const rows = await sql<EventRow[]>`
-    SELECT id, name, event_type, status, starts_at, location, capacity, owners_text,
-           created_by, updated_by, created_at, updated_at
+    SELECT ${sql.unsafe(EVENT_COLUMNS)}
     FROM events
     WHERE id = ${eventId}
     LIMIT 1
@@ -194,8 +198,7 @@ export async function getEvent(eventId: string): Promise<EventRow | null> {
 export async function listEvents(): Promise<EventRow[]> {
   const sql = getSql();
   return sql<EventRow[]>`
-    SELECT id, name, event_type, status, starts_at, location, capacity, owners_text,
-           created_by, updated_by, created_at, updated_at
+    SELECT ${sql.unsafe(EVENT_COLUMNS)}
     FROM events
     ORDER BY starts_at NULLS LAST, name
   `;
@@ -510,8 +513,7 @@ export async function insertEvent(values: {
       ${values.startsAt}, ${values.location}, ${values.capacity}, ${values.ownersText},
       ${values.actorId}, ${values.actorId}
     )
-    RETURNING id, name, event_type, status, starts_at, location, capacity, owners_text,
-              created_by, updated_by, created_at, updated_at
+    RETURNING ${sql.unsafe(EVENT_COLUMNS)}
   `;
   return rows[0];
 }
@@ -540,10 +542,26 @@ export async function updateEvent(values: {
       updated_by = ${values.actorId},
       updated_at = now()
     WHERE id = ${values.id}
-    RETURNING id, name, event_type, status, starts_at, location, capacity, owners_text,
-              created_by, updated_by, created_at, updated_at
+    RETURNING ${sql.unsafe(EVENT_COLUMNS)}
   `;
   return rows[0];
+}
+
+export async function updateEventCoverImage(
+  eventId: string,
+  coverImageUrl: string | null,
+  actorId: string,
+): Promise<EventRow | null> {
+  const sql = getSql();
+  const rows = await sql<EventRow[]>`
+    UPDATE events SET
+      cover_image_url = ${coverImageUrl},
+      updated_by = ${actorId},
+      updated_at = now()
+    WHERE id = ${eventId}
+    RETURNING ${sql.unsafe(EVENT_COLUMNS)}
+  `;
+  return rows[0] ?? null;
 }
 
 export async function insertUser(values: {
