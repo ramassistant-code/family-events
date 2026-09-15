@@ -95,8 +95,8 @@ Production data is personal (names, phones). Complete DPAs with Vercel and Supab
 - Event statuses: טיוטה · פעיל · הסתיים · בוטל
 - Inviting side: כלה · חתן · משותף · אחר
 - Capacity counts adults+children 1:1; soft-deleted rows are excluded from capacity, dashboard, side split, export, and the active list
-- `last_contacted_at` updates only on **סימון: פנינו** or a status change to ממתינים לתשובה
-- From טרם פנינו, **סימון: פנינו** also sets ממתינים לתשובה
+- Invitation status can be changed inline from the invitations list, or from the invitation form
+- `last_contacted_at` updates on a status change to ממתינים לתשובה (`applyStatusChange`)
 - `follow_up_on` stays empty until a contact action, then today+7 Asia/Jerusalem if empty; manual edit is allowed; today/overdue lists ignore empty dates and confirmed/declined rows
 - `tel:` and WhatsApp links do not change status or dates
 - Event manager: view + export + activity summary
