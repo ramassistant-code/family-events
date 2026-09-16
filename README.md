@@ -96,6 +96,7 @@ Production data is personal (names, phones). Complete DPAs with Vercel and Supab
 - Inviting side: כלה · חתן · משותף · אחר
 - Capacity counts adults+children 1:1; soft-deleted rows are excluded from capacity, dashboard, side split, export, and the active list
 - Invitation status can be changed inline from the invitations list, or from the invitation form
+- Group rename: combo of existing event groups + new name; updates every active invitation with that group, independent of list filters. Family members rename only invitations they created.
 - `last_contacted_at` updates on a status change to ממתינים לתשובה (`applyStatusChange`)
 - `follow_up_on` stays empty until a contact action, then today+7 Asia/Jerusalem if empty; manual edit is allowed; today/overdue lists ignore empty dates and confirmed/declined rows
 - `tel:` and WhatsApp links do not change status or dates

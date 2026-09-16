@@ -63,24 +63,20 @@ export function invitationsEligibleForSoftDelete<T extends { created_by: string 
   return invitations.filter((invitation) => canSoftDeleteInvitation(role, actorId, invitation.created_by));
 }
 
-export function canUpdateInvitationGroup(
-  role: AppRole | null,
-  actorId: string,
-  createdBy: string | null,
-): boolean {
-  return canActOnCreatedInvitation(role, actorId, createdBy);
-}
-
-export function canBulkUpdateInvitationGroup(role: AppRole | null): boolean {
+export function canRenameInvitationGroup(role: AppRole | null): boolean {
   return canEditInvitations(role);
 }
 
-export function invitationsEligibleForGroupUpdate<T extends { created_by: string | null }>(
+/** Which invitations a group rename may touch: all of the event's, or only the actor's own. */
+export type GroupRenameScope = { kind: "all" } | { kind: "own"; userId: string };
+
+export function invitationGroupRenameScope(
   role: AppRole | null,
   actorId: string,
-  invitations: T[],
-): T[] {
-  return invitations.filter((invitation) => canUpdateInvitationGroup(role, actorId, invitation.created_by));
+): GroupRenameScope | null {
+  if (role === "system_admin") return { kind: "all" };
+  if (role === "family_member") return { kind: "own", userId: actorId };
+  return null;
 }
 
 export function canRestoreInvitation(role: AppRole | null): boolean {

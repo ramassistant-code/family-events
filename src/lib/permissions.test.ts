@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   canBulkSoftDelete,
-  canBulkUpdateInvitationGroup,
   canEditInvitations,
   canImportInvitations,
+  canRenameInvitationGroup,
   canSoftDeleteInvitation,
-  canUpdateInvitationGroup,
-  invitationsEligibleForGroupUpdate,
+  invitationGroupRenameScope,
   invitationsEligibleForSoftDelete,
 } from "./permissions";
 
@@ -53,37 +52,24 @@ describe("soft-delete permissions", () => {
   });
 });
 
-describe("bulk group-update permissions", () => {
-  it("shows bulk group update to system admin and family member only", () => {
-    expect(canBulkUpdateInvitationGroup("system_admin")).toBe(true);
-    expect(canBulkUpdateInvitationGroup("family_member")).toBe(true);
-    expect(canBulkUpdateInvitationGroup("event_manager")).toBe(false);
-    expect(canBulkUpdateInvitationGroup(null)).toBe(false);
+describe("group rename permissions", () => {
+  it("shows group rename to system admin and family member only", () => {
+    expect(canRenameInvitationGroup("system_admin")).toBe(true);
+    expect(canRenameInvitationGroup("family_member")).toBe(true);
+    expect(canRenameInvitationGroup("event_manager")).toBe(false);
+    expect(canRenameInvitationGroup(null)).toBe(false);
   });
 
-  it("lets family members update only their own invitations among the listed set", () => {
-    expect(canUpdateInvitationGroup("family_member", "u1", "u1")).toBe(true);
-    expect(canUpdateInvitationGroup("family_member", "u1", "u2")).toBe(false);
-    expect(canUpdateInvitationGroup("event_manager", "u1", "u1")).toBe(false);
-    expect(canUpdateInvitationGroup("system_admin", "u1", "u2")).toBe(true);
+  it("scopes the rename to every event invitation for a system admin", () => {
+    expect(invitationGroupRenameScope("system_admin", "admin")).toEqual({ kind: "all" });
   });
 
-  it("selects all listed invitations for a system admin", () => {
-    const listed = [{ id: "a", created_by: "u1" }, { id: "b", created_by: "u2" }, { id: "c", created_by: null }];
-    expect(invitationsEligibleForGroupUpdate("system_admin", "admin", listed).map((row) => row.id)).toEqual([
-      "a",
-      "b",
-      "c",
-    ]);
+  it("scopes the rename to the family member's own invitations", () => {
+    expect(invitationGroupRenameScope("family_member", "u1")).toEqual({ kind: "own", userId: "u1" });
   });
 
-  it("selects only the family member's own invitations among the listed set", () => {
-    const listed = [
-      { id: "mine", created_by: "u1" },
-      { id: "theirs", created_by: "u2" },
-      { id: "unknown", created_by: null },
-    ];
-    expect(invitationsEligibleForGroupUpdate("family_member", "u1", listed).map((row) => row.id)).toEqual(["mine"]);
-    expect(invitationsEligibleForGroupUpdate("event_manager", "u1", listed)).toEqual([]);
+  it("denies the rename to event managers and guests", () => {
+    expect(invitationGroupRenameScope("event_manager", "u1")).toBeNull();
+    expect(invitationGroupRenameScope(null, "u1")).toBeNull();
   });
 });

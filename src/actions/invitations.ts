@@ -6,6 +6,7 @@ import { requireAdmin, requireEventAccess } from "@/lib/access";
 import { applyMarkContacted, applyStatusChange } from "@/lib/contact";
 import { todayInJerusalem } from "@/lib/dates";
 import { DEFAULT_INVITATION_STATUS, isInvitationStatus, isInvitingSide } from "@/lib/domain";
+import { planGroupRename } from "@/lib/group-rename";
 import {
   normalizeInvitationGroupName,
   parseListedInvitationFilters,
@@ -13,12 +14,11 @@ import {
 } from "@/lib/invitation-filters";
 import {
   canBulkSoftDelete,
-  canBulkUpdateInvitationGroup,
   canEditInvitations,
   canImportInvitations,
   canRestoreInvitation,
   canSoftDeleteInvitation,
-  invitationsEligibleForGroupUpdate,
+  invitationGroupRenameScope,
   invitationsEligibleForSoftDelete,
 } from "@/lib/permissions";
 import { normalizePhone } from "@/lib/phone";
@@ -28,12 +28,13 @@ import {
   insertActivity,
   insertInvitation,
   listActiveNormalizedPhones,
+  listInvitationGroupNames,
   listInvitations,
+  renameInvitationGroup,
   restoreInvitation,
   softDeleteInvitation,
   softDeleteInvitations,
   updateInvitation,
-  updateInvitationGroupNames,
 } from "@/lib/queries";
 import { excelFileToTable } from "@/lib/export";
 import { importSummary, parseCsv, partitionConfirmImportRows, previewImport, type ImportRow } from "@/lib/import";
@@ -346,50 +347,56 @@ export async function bulkSoftDeleteListedInvitationsAction(
   return { ok: true, deleted: deleted.length };
 }
 
-export async function bulkUpdateListedInvitationGroupsAction(
+/** Renames a group across the whole event — independent of the current list filters. */
+export async function renameInvitationGroupAction(
   eventId: string,
-  filterInput: ListedInvitationFilterInput,
-  groupNameRaw: string,
-): Promise<{ ok: true; updated: number } | { ok: false; error: string }> {
+  oldGroupNameRaw: string,
+  newGroupNameRaw: string,
+): Promise<{ ok: true; updated: number; from: string; to: string } | { ok: false; error: string }> {
   const { user, role } = await requireEventAccess(eventId);
-  if (!canBulkUpdateInvitationGroup(role)) {
-    return { ok: false, error: "אין הרשאה לעדכן קבוצה." };
+  const scope = invitationGroupRenameScope(role, user.id);
+  if (!scope) {
+    return { ok: false, error: "אין הרשאה לשנות שם קבוצה." };
   }
 
-  const filters = parseListedInvitationFilters(filterInput);
-  const listed = await listInvitations(eventId, filters);
-  const eligible = invitationsEligibleForGroupUpdate(role, user.id, listed);
+  const existingGroupNames = await listInvitationGroupNames(eventId);
+  const plan = planGroupRename({
+    oldGroupName: oldGroupNameRaw,
+    newGroupName: newGroupNameRaw,
+    existingGroupNames,
+  });
+  if (!plan.ok) {
+    return { ok: false, error: plan.error };
+  }
 
-  if (eligible.length === 0) {
+  const updated = await renameInvitationGroup(
+    eventId,
+    plan.from,
+    plan.to,
+    user.id,
+    scope.kind === "own" ? scope.userId : undefined,
+  );
+
+  if (updated.length === 0) {
     return {
       ok: false,
       error:
-        role === "family_member"
-          ? "אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין מה לעדכן."
-          : "אין הזמנות לעדכון.",
+        scope.kind === "own"
+          ? "אין הזמנות שנוצרו על ידכם בקבוצה הזו, ולכן אין מה לעדכן."
+          : "אין הזמנות בקבוצה הזו.",
     };
   }
-
-  const groupName = normalizeInvitationGroupName(groupNameRaw);
-  const updated = await updateInvitationGroupNames(
-    eventId,
-    eligible.map((invitation) => invitation.id),
-    groupName,
-    user.id,
-  );
 
   await insertActivity({
     eventId,
     actorId: user.id,
-    action: "invitation.group_updated",
-    summary: groupName
-      ? `עודכנה קבוצה «${groupName}» עבור ${updated.length} הזמנות`
-      : `נוקתה הקבוצה מ-${updated.length} הזמנות`,
-    details: { updated: updated.length, groupName },
+    action: "invitation.group_renamed",
+    summary: `שם הקבוצה «${plan.from}» שונה ל-«${plan.to}» עבור ${updated.length} הזמנות`,
+    details: { updated: updated.length, from: plan.from, to: plan.to },
   });
 
   revalidatePath(`/events/${eventId}`);
-  return { ok: true, updated: updated.length };
+  return { ok: true, updated: updated.length, from: plan.from, to: plan.to };
 }
 
 export async function restoreInvitationAction(invitationId: string, eventId: string) {
