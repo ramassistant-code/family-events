@@ -12,17 +12,15 @@ Each invitation is a household, not a person. The UI is Hebrew and right-to-left
 - Optional Docker Compose Postgres for a local demo
 - Supabase Storage for event cover images (public-read bucket `event-covers`; uploads via service role)
 
-## Default seed logins
+## Seed accounts
 
-After `npm run db:seed` (skipped if users already exist):
+After `npm run db:seed` (skipped if users already exist), three demo users are created:
 
-| Role | Email | Password |
-| --- | --- | --- |
-| System admin | `admin@family-events.local` | `FamilyEvents!2026` |
-| Family member | `family@family-events.local` | `FamilyEvents!2026` |
-| Event manager | `manager@family-events.local` | `FamilyEvents!2026` |
+- System admin
+- Family member
+- Event manager
 
-Override the password with `SEED_ADMIN_PASSWORD` before seeding. Change these credentials before loading real guest data.
+Seed account emails and passwords are documented in Linear only (project Credentials doc). Do not put credentials in this repository. Set `SEED_ADMIN_PASSWORD` from that document before seeding.
 
 ## Environment variables
 
@@ -32,6 +30,7 @@ Copy `.env.example` to `.env.local`:
 AUTH_SECRET=generate-a-long-random-string
 AUTH_URL=http://localhost:3000
 DATABASE_URL=postgres://family:family@localhost:5432/family_events
+# SEED_ADMIN_PASSWORD is required for seed — value from Linear Credentials, never commit it
 # Optional, required to upload event covers:
 # NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 # SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
@@ -42,7 +41,7 @@ DATABASE_URL=postgres://family:family@localhost:5432/family_events
 | `DATABASE_URL` | yes | Supabase pooler URI (`sslmode=require`) or local Postgres |
 | `AUTH_SECRET` | yes in production | `openssl rand -base64 32` |
 | `AUTH_URL` | recommended | Public origin, e.g. `https://your-app.vercel.app` |
-| `SEED_ADMIN_PASSWORD` | no | Defaults to `FamilyEvents!2026` |
+| `SEED_ADMIN_PASSWORD` | yes for seed | Stored in Linear Credentials. Never commit the value. |
 | `NEXT_PUBLIC_SUPABASE_URL` | for cover uploads | Project URL (`https://<ref>.supabase.co`). `SUPABASE_URL` is an alias. |
 | `SUPABASE_SERVICE_ROLE_KEY` | for cover uploads | Server only. Settings → API → `service_role`. Never expose to the client. |
 
@@ -53,7 +52,7 @@ SQL migrations are in `db/migrations/`. Auth.js tables `auth_accounts`, `auth_se
 ```bash
 docker compose up -d
 cp .env.example .env.local
-# set AUTH_SECRET in .env.local
+# set AUTH_SECRET and SEED_ADMIN_PASSWORD (from Linear Credentials) in .env.local
 npm install
 npm run db:migrate
 npm run db:seed
@@ -77,6 +76,7 @@ Sample import file: `examples/invitations-sample.csv`.
 
    ```bash
    DATABASE_URL='postgres://...' npm run db:migrate
+   # set SEED_ADMIN_PASSWORD from Linear Credentials (never commit it)
    DATABASE_URL='postgres://...' npm run db:seed
    ```
 
