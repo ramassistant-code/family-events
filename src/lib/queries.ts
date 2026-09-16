@@ -435,20 +435,22 @@ export async function softDeleteInvitation(
   `;
 }
 
-export async function updateInvitationGroupNames(
+/** Renames a group on every active invitation of the event, regardless of list filters. */
+export async function renameInvitationGroup(
   eventId: string,
-  invitationIds: string[],
-  groupName: string | null,
+  fromGroupName: string,
+  toGroupName: string,
   actorId: string,
+  onlyCreatedBy?: string,
 ): Promise<InvitationRow[]> {
-  if (invitationIds.length === 0) return [];
   const sql = getSql();
   return sql<InvitationRow[]>`
     UPDATE invitations
-    SET group_name = ${groupName}, updated_by = ${actorId}, updated_at = now()
+    SET group_name = ${toGroupName}, updated_by = ${actorId}, updated_at = now()
     WHERE event_id = ${eventId}
       AND deleted_at IS NULL
-      AND id = ANY(${invitationIds}::uuid[])
+      AND group_name = ${fromGroupName}
+      ${onlyCreatedBy ? sql`AND created_by = ${onlyCreatedBy}` : sql``}
     RETURNING ${sql.unsafe(invitationSelect())}
   `;
 }
