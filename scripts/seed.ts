@@ -1,7 +1,6 @@
 import { config } from "dotenv";
 import bcrypt from "bcryptjs";
 import postgres from "postgres";
-import { DEFAULT_SEED_PASSWORD } from "../src/lib/domain";
 import { normalizePhone } from "../src/lib/phone";
 import { addDaysToDateString, todayInJerusalem } from "../src/lib/dates";
 
@@ -16,7 +15,13 @@ if (!DATABASE_URL) {
 
 const connectionUrl: string = DATABASE_URL;
 
-const password = process.env.SEED_ADMIN_PASSWORD || DEFAULT_SEED_PASSWORD;
+const password = process.env.SEED_ADMIN_PASSWORD?.trim();
+if (!password) {
+  console.error(
+    "SEED_ADMIN_PASSWORD is required for seed. Set it from the Linear Credentials document. Do not commit the value.",
+  );
+  process.exit(1);
+}
 
 async function main() {
   const sql = postgres(connectionUrl, { max: 1, prepare: false });
@@ -234,9 +239,10 @@ async function main() {
     `;
 
     console.log("seed complete");
-    console.log("  admin@family-events.local / " + password);
-    console.log("  family@family-events.local / " + password);
-    console.log("  manager@family-events.local / " + password);
+    console.log("  admin@family-events.local (system_admin)");
+    console.log("  family@family-events.local (family_member)");
+    console.log("  manager@family-events.local (event_manager)");
+    console.log("Passwords are documented in Linear Credentials only.");
   } finally {
     await sql.end();
   }

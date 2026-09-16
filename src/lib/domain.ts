@@ -1,6 +1,5 @@
 export const TIME_ZONE = "Asia/Jerusalem";
 export const MAX_IMPORT_ROWS = 2000;
-export const DEFAULT_SEED_PASSWORD = "FamilyEvents!2026";
 
 export const INVITATION_STATUSES = [
   "not_contacted",
