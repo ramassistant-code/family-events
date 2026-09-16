@@ -70,6 +70,7 @@ vi.mock("@/lib/queries", () => ({
   ),
 }));
 
+const { listInvitationGroupNames } = await import("@/lib/queries");
 const { renameInvitationGroupAction } = await import("./invitations");
 
 function groupsById() {
@@ -170,5 +171,19 @@ describe("renameInvitationGroupAction", () => {
 
     expect(result).toEqual({ ok: true, updated: 1, from: "חברים", to: "שכנים" });
     expect(groupsById()).toMatchObject({ a: "שכנים", b: "שכנים", c: "שכנים" });
+  });
+
+  it("drops the old name from the event group list when unused", async () => {
+    await renameInvitationGroupAction("e1", "שכנים", "שכנים מרחוב הרצל");
+
+    expect(await listInvitationGroupNames("e1")).toEqual(["חברים", "שכנים מרחוב הרצל"]);
+  });
+
+  it("keeps the old name when a family member rename leaves other invitations on it", async () => {
+    access = { user: { id: "u1" }, role: "family_member" };
+
+    await renameInvitationGroupAction("e1", "שכנים", "שלי");
+
+    expect(await listInvitationGroupNames("e1")).toEqual(["חברים", "שכנים", "שלי"]);
   });
 });

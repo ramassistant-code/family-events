@@ -5,7 +5,6 @@ import {
   canImportInvitations,
   canRenameInvitationGroup,
   canSoftDeleteInvitation,
-  canUpdateInvitationGroup,
   invitationGroupRenameScope,
   invitationsEligibleForSoftDelete,
 } from "./permissions";
@@ -59,13 +58,6 @@ describe("group rename permissions", () => {
     expect(canRenameInvitationGroup("family_member")).toBe(true);
     expect(canRenameInvitationGroup("event_manager")).toBe(false);
     expect(canRenameInvitationGroup(null)).toBe(false);
-  });
-
-  it("lets family members update the group of only their own invitations", () => {
-    expect(canUpdateInvitationGroup("family_member", "u1", "u1")).toBe(true);
-    expect(canUpdateInvitationGroup("family_member", "u1", "u2")).toBe(false);
-    expect(canUpdateInvitationGroup("event_manager", "u1", "u1")).toBe(false);
-    expect(canUpdateInvitationGroup("system_admin", "u1", "u2")).toBe(true);
   });
 
   it("scopes the rename to every event invitation for a system admin", () => {

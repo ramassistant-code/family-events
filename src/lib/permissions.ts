@@ -63,14 +63,6 @@ export function invitationsEligibleForSoftDelete<T extends { created_by: string 
   return invitations.filter((invitation) => canSoftDeleteInvitation(role, actorId, invitation.created_by));
 }
 
-export function canUpdateInvitationGroup(
-  role: AppRole | null,
-  actorId: string,
-  createdBy: string | null,
-): boolean {
-  return canActOnCreatedInvitation(role, actorId, createdBy);
-}
-
 export function canRenameInvitationGroup(role: AppRole | null): boolean {
   return canEditInvitations(role);
 }

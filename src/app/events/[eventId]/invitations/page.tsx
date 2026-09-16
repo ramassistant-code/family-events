@@ -116,7 +116,7 @@ export default async function InvitationsPage({
       </div>
       {canBulkDelete && rows.length > 0 && eligibleCount === 0 ? (
         <p className="text-sm text-[var(--ink-soft)]">
-          אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין פעולות מרוכזות זמינות.
+          אין הזמנות שנוצרו על ידכם בין המוצגות, ולכן אין מחיקה מרוכזת זמינה.
         </p>
       ) : null}
 

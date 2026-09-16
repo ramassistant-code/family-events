@@ -20,6 +20,7 @@ export function RenameGroupControl({
   const [oldGroupName, setOldGroupName] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
 
+  const canSubmit = Boolean(oldGroupName.trim() && newGroupName.trim()) && !pending;
   const scopeBody = isFamilyMember
     ? "שינוי השם יחול על כל ההזמנות הפעילות באירוע שנוצרו על ידכם ומשויכות לקבוצה שנבחרה, ללא תלות בסינון הרשימה."
     : "שינוי השם יחול על כל ההזמנות הפעילות באירוע המשויכות לקבוצה שנבחרה, ללא תלות בסינון הרשימה.";
@@ -82,7 +83,7 @@ export function RenameGroupControl({
             </label>
             {error ? <p className="mt-2 text-[var(--no)]">{error}</p> : null}
             <div className="mt-4 flex gap-2">
-              <button className="btn btn-primary" disabled={pending} type="button" onClick={() => void confirmRename()}>
+              <button className="btn btn-primary" disabled={!canSubmit} type="button" onClick={() => void confirmRename()}>
                 {pending ? "מעדכן…" : "שינוי שם"}
               </button>
               <button className="btn btn-secondary" disabled={pending} type="button" onClick={() => setDialogOpen(false)}>
