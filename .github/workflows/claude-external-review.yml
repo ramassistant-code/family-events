@@ -1,0 +1,75 @@
+name: Claude Code external review
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      linear_issue_id:
+        description: Linear issue ID (e.g. BIS-42)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+  id-token: write
+
+jobs:
+  external-review:
+    name: External review with Claude Code
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'external-review') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude external-review'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Linear MCP config
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          token = os.environ.get("LINEAR_API_KEY", "")
+          mcp_config = {
+              "mcpServers": {
+                  "linear": {
+                      "type": "http",
+                      "url": "https://mcp.linear.app/mcp",
+                      "headers": {
+                          "Authorization": f"Bearer {token}",
+                      },
+                  }
+              }
+          }
+          Path("/tmp/linear-mcp.json").write_text(json.dumps(mcp_config))
+          settings = {"env": {"LINEAR_API_KEY": token}}
+          Path("/tmp/claude-settings.json").write_text(json.dumps(settings))
+          PY
+
+      - name: External review with Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          label_trigger: "external-review"
+          trigger_phrase: "@claude external-review"
+          settings: /tmp/claude-settings.json
+          prompt: ${{ github.event_name == 'workflow_dispatch' && format('Perform an independent EXTERNAL REVIEW for Linear issue {0}. Do not implement or fix anything. Read that Linear issue and ALL linked Linear documents (Feature Spec, Discovery, PO decisions, internal reviews) via Linear MCP or GraphQL. Post the full structured review report only as a comment on the Linear review issue. Optionally post a short summary on the GitHub issue. Follow the EXTERNAL REVIEWER system rules.', inputs.linear_issue_id) || '' }}
+          claude_args: |
+            --max-turns 50
+            --mcp-config /tmp/linear-mcp.json
+            --allowedTools "Read,Glob,Grep,mcp__linear,mcp__linear__*,mcp__linear__get_issue,mcp__linear__list_issues,mcp__linear__get_document,mcp__linear__list_documents,mcp__linear__list_comments,mcp__linear__create_comment,mcp__linear__list_teams,mcp__linear__get_team,mcp__linear__list_users,mcp__linear__get_user,mcp__linear__list_projects,mcp__linear__get_project,mcp__linear__search_documentation,mcp__github__create_issue_comment,mcp__github_comment,mcp__github_comment__update_claude_comment,Bash(curl *)"
+            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,Bash(git add *),Bash(git commit *),Bash(git push *),Bash(git rebase *),Bash(git merge *),Bash(git checkout *),Bash(git switch *),Bash(git branch *),Bash(gh *),mcp__github__create_pull_request,mcp__github__update_pull_request,mcp__github__merge_pull_request,mcp__github__create_or_update_file,mcp__github__push_files,mcp__github__create_branch,mcp__github__fork_repository,mcp__github__delete_file,mcp__github_file_ops__commit_files,mcp__github_file_ops__delete_files,mcp__github_file_ops__create_pull_request,mcp__linear__create_issue,mcp__linear__update_issue,mcp__linear__create_project,mcp__linear__update_project,mcp__linear__create_issue_label"
+            --append-system-prompt "You are an independent external reviewer. You did NOT author the artifact. Fresh run only. Do not implement or fix anything. Read the Linear issue ID from the GitHub issue body (look for BIS-XX or linear_issue_id) or workflow_dispatch input. Using Linear MCP (or GraphQL at https://api.linear.app/graphql with LINEAR_API_KEY), read that Linear issue and ALL linked Linear documents (Feature Spec, Discovery, PO decisions, internal reviews). Do NOT edit any Linear document or the product artifact. Post the full structured review report ONLY as a comment on the Linear review issue (and optionally a short summary comment on the GitHub issue). Finding classifications: BLOCKER, MAJOR, IMPROVEMENT, OWNER DECISION — each with id, classification, section/doc, problem, why, required fix/decision, source requirement. Verdict exactly one of: CHANGES REQUIRED | OWNER DECISION REQUIRED | PASSED EXTERNAL REVIEW. Forbidden: edit artifact, write code, open PR, deploy, migration, create development issues, change PO decisions, approve stage transitions."
