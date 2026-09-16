@@ -15,7 +15,7 @@ if (!DATABASE_URL) {
 
 const connectionUrl: string = DATABASE_URL;
 
-const password = process.env.SEED_ADMIN_PASSWORD?.trim();
+const password = process.env.SEED_ADMIN_PASSWORD?.trim() ?? "";
 if (!password) {
   console.error(
     "SEED_ADMIN_PASSWORD is required for seed. Set it from the Linear Credentials document. Do not commit the value.",
